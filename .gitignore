@@ -1,0 +1,23 @@
+# Node
+node_modules/
+dist/
+.npm/
+.yarn/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# 환경변수
+.env
+.env.*
+
