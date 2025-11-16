@@ -1,5 +1,6 @@
 import "./index.css";
 import UploadPanel from "./components/UploadPanel";
+import BrickGuidePanel from "./components/BrickGuidePanel";
 
 function App() {
   return (
@@ -12,19 +13,9 @@ function App() {
         <main className="app-main">
           <section className="panel upload-panel">
             <UploadPanel />
+            <BrickGuidePanel />
           </section>
 
-          <section className="panel result-panel">
-            <h2>2.브릭 분석 &amp; 조립 가이드</h2>
-            <p className="panel-desc">
-              필요한 브릭 종류/ 개수 / 조립 순서가 여기 표시될 예정입니다
-            </p>
-
-            {/* TODO 나중에 서버 분석 결과를 리스트/카드 형태로 보여주기 */}
-            <div className="result-placeholder">
-              <span>분석 결과 표시 영역</span>
-            </div>  
-          </section>
         </main>
     </div>
   );
