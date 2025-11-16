@@ -1,4 +1,5 @@
 import "./index.css";
+import UploadPanel from "./components/UploadPanel";
 
 function App() {
   return (
@@ -10,21 +11,15 @@ function App() {
 
         <main className="app-main">
           <section className="panel upload-panel">
-            <h2>1. 이미지/ 디자인 업로드</h2>
-            <p className="panel-desc">
-              레고로 만들고싶은 그림, 로고,캐릭터 이미지를 선택하세요.
-              이후 이영역에 업로드 컴포넌트가 들어갈 예정입니다.
-            </p>
-            {/* TODO 나중에 input type="file" /드래그앤드롭 컴포넌트 추가 */}
-            <div className="upload-placeholder">
-              <span>이미지 업로드</span>
-            </div>
+            <UploadPanel />
           </section>
+
           <section className="panel result-panel">
-            <h2>2.브릭 분석&조립 가이드</h2>
+            <h2>2.브릭 분석 &amp; 조립 가이드</h2>
             <p className="panel-desc">
               필요한 브릭 종류/ 개수 / 조립 순서가 여기 표시될 예정입니다
             </p>
+
             {/* TODO 나중에 서버 분석 결과를 리스트/카드 형태로 보여주기 */}
             <div className="result-placeholder">
               <span>분석 결과 표시 영역</span>
