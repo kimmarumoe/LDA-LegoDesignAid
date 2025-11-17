@@ -1,7 +1,6 @@
 import { useState } from "react";
 
-function BrickGuidePanel() {
-    const [showSample, setShowSample]= useState(false);
+
         // 샘플 데이터 
         const sampleResult={
             summary: {
@@ -30,28 +29,42 @@ function BrickGuidePanel() {
             "작은 브릭은 마지막 디테일 단계에서 한 번에 처리하세요.",
             ],
         };
+
+    function BrickGuidePanel({ analysisStatus = "idle", fileName }) {
+    const [showSample, setShowSample]= useState(false);
         const toggleSample=()=>{
             setShowSample((prev)=>!prev);
         };
+
+        let statusLabel = "분석 대기 중";
+        let badgeClass = "is-idle";
+        if (analysisStatus === "running") {
+          statusLabel = "분석 중...";
+          badgeClass = "is-running";
+        } else if (analysisStatus === "done") {
+          statusLabel = "분석 완료";
+          badgeClass = "is-ready";
+        }
+
+        const hasFile = !!fileName;
+
         return(
             <section className="panel result-panel">
                 <div className="result-header">
                     <h2>2.브릭분석 &amp; 조립가이드 </h2>
-                    <span className={'result-badge ${showSample ? "is-ready":"is-idle"}'}>
-                        {showSample ? "샘플 결과 표시중" : "분석 대기 보기"}
-                    </span>
+                   <span className={`result-badge ${badgeClass}`}>{statusLabel}</span>
                 </div>
-                      <p className="panel-desc">
-        업로드한 이미지를 분석해서 필요한 브릭 종류·개수와 단계별 조립 가이드를 여기에 표시합니다.
-        지금은 UI 설계 단계라 샘플 데이터를 기준으로 레이아웃만 구성해 두었습니다.
-      </p>
+                {hasFile && ( <p className="result-file-name">선택된 이미지 : <string>{fileName}</string></p>)}
+                
 
       {/* 우측 상단 툴바 (샘플 보기용 버튼) */}
-      <div className="result-toolbar">
-        <button type="button" className="btn-outline" onClick={toggleSample}>
-          {showSample ? "빈 상태로 보기" : "샘플 결과 보기"}
-        </button>
-      </div>
+     <div className="result-toolbar">
+    <button type="button"
+            className="btn-outline"
+            onClick={toggleSample}>
+      {showSample ? "빈 상태로 보기" : "샘플 결과 보기"}
+    </button>
+  </div>
 
       <div className="result-body">
         {showSample ? (
@@ -123,19 +136,17 @@ function BrickGuidePanel() {
             </div>
           </div>
         ) : (
-          /* 분석 전(빈) 상태 화면 */
-          <div className="result-placeholder">
+        /* 분석 전(빈) 상태 화면 */
+        <div className="result-placeholder">
             <p className="result-placeholder-text">
-              아직 분석이 진행되지 않았습니다. 왼쪽에서 이미지를 업로드하고 분석을 실행하면,
-              필요한 브릭 구성과 단계별 조립 가이드가 이 영역에 표시됩니다.
+            아직 분석이 진행되지 않았습니다.
             </p>
-            <ul className="result-placeholder-list">
-              <li>브릭 총 개수 / 종류 / 난이도 요약</li>
-              <li>색상·역할별 브릭 그룹 구성</li>
-              <li>STEP 1~N 단계별 조립 순서</li>
-              <li>조립 시간과 난이도에 따른 팁</li>
+                <ul className="result-placeholder-list">
+                    <li>왼쪽에서 이미지를 선택하고 &quot;분석 실행&quot;을 눌러 주세요.</li>
+                    <li>분석이 완료되면 필요한 브릭 수, 종류, 난이도 정보를 보여줄 예정입니다.</li>
+                    <li>당장은 샘플 결과를 통해 레이아웃만 먼저 확인할 수 있습니다.</li>
             </ul>
-          </div>
+        </div>
         )}
       </div>
             </section>

@@ -52,7 +52,10 @@ function App() {
               onSelect={handleImageSelect}
               onAnalyze={handleAnalyze}
             />
-            <BrickGuidePanel />
+            <BrickGuidePanel 
+            analysisStatus={analysisStatus}
+            fileName={selectedFile?.name ?? ""}
+            />
           </section>
         </main>
     </div>
