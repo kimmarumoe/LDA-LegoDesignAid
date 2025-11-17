@@ -25,7 +25,6 @@ body {
   margin-bottom: 8px;
 }
 
-/* 🔧 오타 + color 값 수정 */
 .app-subtitle {
   margin: 0;
   color: #4b5563;
@@ -33,11 +32,17 @@ body {
 }
 
 .app-main {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
-
+/* 반응형 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .app-root {
+    max-width: 100%;
+    padding: 24px 20px 40px;
+  }
+}
 /* 공통 카드 패널 */
 .panel {
   background: #ffffff;
@@ -57,7 +62,7 @@ body {
   font-size: 14px;
 }
 
-/* 업로드 전 placeholder (현재는 사용 안 해도 무방) */
+/* 업로드 전 placeholder */
 .upload-placeholder {
   border: 1px dashed #d1d5db;
   border-radius: 10px;
@@ -73,7 +78,7 @@ body {
   margin-top: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem; /* 🔧 오타 수정 */
+  gap: 0.5rem; 
 }
 
 .upload-label {
@@ -88,7 +93,7 @@ body {
   cursor: pointer;
 }
 
-/* 🔧 label 숨기는게 아니라 input 을 숨겨야 함 */
+/* label 숨기는게 아니라 input 을 숨겨야 함 */
 .upload-label input[type="file"] {
   display: none;
 }
