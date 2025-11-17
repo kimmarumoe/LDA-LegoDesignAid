@@ -1,8 +1,41 @@
+import { useState } from "react";
 import "./index.css";
 import UploadPanel from "./components/UploadPanel";
 import BrickGuidePanel from "./components/BrickGuidePanel";
 
 function App() {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [analysisStatus, setAnalysisStatus] = useState("idle"); // idle, analyzing, ready
+  
+  const handleImageSelect = (File, url) => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    if (!File) {
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      setAnalysisStatus("idle");
+      return;
+    }
+
+    setSelectedFile(File);
+    setPreviewUrl(url);
+    setAnalysisStatus("idle");
+  };
+
+  const handleAnalyze = () => {
+    if (!selectedFile||analysisStatus=== "running") return;
+
+    setAnalysisStatus("running");
+
+    //todo 실제 분석 api 연동
+    setTimeout(() => {
+      setAnalysisStatus("done");
+    },1000);
+  };
+  
   return (
     <div className="app-root">
       <header className="app-header">
@@ -12,10 +45,15 @@ function App() {
 
         <main className="app-main">
           <section className="panel upload-panel">
-            <UploadPanel />
+            <UploadPanel 
+              file={selectedFile}
+              previewUrl={previewUrl}               
+              analysisStatus={analysisStatus}
+              onSelect={handleImageSelect}
+              onAnalyze={handleAnalyze}
+            />
             <BrickGuidePanel />
           </section>
-
         </main>
     </div>
   );

@@ -313,3 +313,38 @@ body {
 .result-tips li + li {
   margin-top: 0.15rem;
 }
+
+/* ===== 업로드 패널 하단 액션 ===== */
+
+.upload-actions {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.btn-primary {
+  border-radius: 999px;
+  border: none;
+  padding: 0.55rem 1.4rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: #4f46e5;
+  color: #f9fafb;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-primary:hover:enabled {
+  background: #4338ca;
+}
+
+.upload-actions-hint {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
