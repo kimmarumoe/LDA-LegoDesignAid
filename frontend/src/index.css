@@ -19,6 +19,40 @@ body {
 .app-header {
   margin-bottom: 24px;
 }
+/* 헤더 안에서 로고 + 텍스트를 가로로 배치 */
+.app-logo-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 동그란 LDA 로고 마크 */
+.app-logo-mark {
+  width: 45px;
+  height: 45px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.35);
+  flex-shrink: 0;
+}
+
+/* LDA 텍스트(작은 로고 타입) */
+.app-logo-text-short {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #f9fafb;
+  letter-spacing: 0.08em;
+}
+
+/* 타이틀 + 서브타이틀 세로 정렬 */
+.app-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
 .app-header h1 {
   font-size: 20px;
@@ -26,7 +60,7 @@ body {
 }
 
 .app-subtitle {
-  margin: 0;
+  margin: 2px 0 0;
   color: #4b5563;
   font-size: 14px;
 }
