@@ -1,0 +1,84 @@
+/* frontend/src/components/Layout.css */
+
+/* ===== 공통 레이아웃 ===== */
+
+.app-root {
+  min-height: 100vh;
+  background: #f5f7fb;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 16px 24px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-logo-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.app-logo-text-short {
+  letter-spacing: 0.06em;
+}
+
+.app-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ===== 상단 네비게이션 ===== */
+
+.app-nav {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.app-nav-link {
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #4b5563;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.app-nav-link:hover {
+  background: #e5e7eb;
+}
+
+.app-nav-link-active {
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+/* ===== 메인 컨테이너 ===== */
+
+.app-main {
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 16px 24px 32px;
+}
