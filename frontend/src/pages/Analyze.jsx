@@ -3,7 +3,7 @@ import { useState } from "react";
 import UploadPanel from "../components/UploadPanel.jsx";
 import BrickGuidePanel from "../components/BrickGuidePanel.jsx";
 // 스타일 파일 쓰고 있으면 같이 import
-// import "./LdaApp.css";
+import "./Analyze.css";
 
 export default function Analyze() {
   // 1) 상태 정의
