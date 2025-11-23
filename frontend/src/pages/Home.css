@@ -1,53 +1,279 @@
-/* Home 페이지 전용 스타일 */
+/* src/pages/Home.css */
+/* 홈(메인) 페이지 – 레퍼런스 느낌 히어로 + HOW IT WORKS 섹션 */
 
+/* 페이지 전체 섹션 간 여백 (40 → 32로 살짝 줄임) */
+.home-page {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ===== HERO 섹션 ===== */
+
+/* 상단 네비게이션과의 간격 (24 → 12로 줄임) */
 .home-hero {
-  padding: 32px 0;
+  margin-top: 12px;
 }
 
-.home-title {
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 12px;
+.home-hero-inner {
+  border-radius: 32px;
+  background: #ffe9d6; /* 피치색 카드 */
+  padding: 32px 32px;
+  display: flex;
+  gap: 32px;
+  align-items: stretch;
 }
 
-.home-desc {
-  font-size: 15px;
+.home-hero-left {
+  flex: 1.1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.home-kicker {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.home-hero-title {
+  font-size: 32px;
+  line-height: 1.25;
+  font-weight: 800;
+  margin: 0;
+  color: #111827;
+}
+
+.home-hero-desc {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.7;
   color: #4b5563;
-  line-height: 1.6;
-  margin-bottom: 20px;
+  max-width: 440px;
 }
+
+/* CTA 버튼들 */
 
 .home-actions {
+  margin-top: 16px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-/* 공통 버튼 스타일 (필요하면 나중에 base.css로 분리 가능) */
+/* 공통 버튼 스타일 – 프로젝트 전역에서 재사용 가능 */
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 14px;
+  padding: 9px 18px;
   border-radius: 999px;
   font-size: 14px;
+  font-weight: 500;
   border: 1px solid transparent;
   cursor: pointer;
   text-decoration: none;
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out,
+    background 0.12s ease-out, opacity 0.12s ease-out;
 }
 
+/* 메인 CTA */
+
 .btn-primary {
-  background: #4f46e5;
-  color: #ffffff;
+  background: #0f766e;
+  color: #f9fafb;
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.45);
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(15, 118, 110, 0.55);
 }
 
+/* 서브 CTA (흰색 버튼) */
+
 .btn-ghost {
-  background: transparent;
-  border-color: #d1d5db;
+  background: #ffffff;
+  border-color: #e5e7eb;
+  color: #111827;
+}
+
+.btn-ghost:hover {
+  background: #f9fafb;
+}
+
+/* 오른쪽 히어로 데코 박스 */
+
+.home-hero-right {
+  flex: 0.9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-shape {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1 / 1;
+}
+
+.hero-square {
+  width: 100%;
+  height: 100%;
+  border-radius: 32px;
+  background: #0f766e;
+}
+
+.hero-dot {
+  position: absolute;
+  border-radius: 24px;
+}
+
+.hero-dot-orange {
+  width: 80px;
+  height: 80px;
+  background: #f97316;
+  top: 20px;
+  left: 20px;
+}
+
+.hero-dot-green {
+  width: 90px;
+  height: 90px;
+  background: #22c55e;
+  bottom: 24px;
+  right: 36px;
+}
+
+/* ===== HOW IT WORKS 섹션 ===== */
+
+.home-how {
+  margin-bottom: 32px;
+}
+
+.home-how-inner {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+}
+
+.home-how-left {
+  flex: 1.2;
+}
+
+.home-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+.home-how-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+.home-how-desc {
+  font-size: 14px;
+  line-height: 1.7;
   color: #4b5563;
+  margin: 0 0 12px;
+  max-width: 520px;
+}
+
+.home-how-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.home-how-steps li + li {
+  margin-top: 3px;
+}
+
+/* 오른쪽 팔레트 카드 */
+
+.home-palette-card {
+  flex: 0.9;
+  background: #020617;
+  border-radius: 24px;
+  padding: 20px 22px;
+  color: #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-palette-dots {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+}
+
+.dot-blue {
+  background: #0ea5e9;
+}
+
+.dot-yellow {
+  background: #facc15;
+}
+
+.dot-red {
+  background: #ef4444;
+}
+
+.home-palette-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.home-palette-desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #cbd5f5;
+  margin: 0;
+}
+
+/* ===== 반응형 조정 ===== */
+
+@media (max-width: 900px) {
+  .home-hero-inner {
+    flex-direction: column;
+  }
+
+  .home-hero-right {
+    order: -1; /* 작은 화면에서는 그림이 위로 올라가게 */
+  }
+
+  .home-how-inner {
+    flex-direction: column;
+  }
+
+  .home-palette-card {
+    max-width: 360px;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-hero-inner {
+    padding: 24px 20px;
+  }
+
+  .home-hero-title {
+    font-size: 26px;
+  }
 }
