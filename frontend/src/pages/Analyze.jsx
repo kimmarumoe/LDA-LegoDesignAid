@@ -1,5 +1,5 @@
 // frontend/src/pages/Analyze.jsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import UploadPanel from "../components/UploadPanel.jsx";
 import BrickGuidePanel from "../components/BrickGuidePanel.jsx";
 import "./Analyze.css";
@@ -10,21 +10,21 @@ import "./Analyze.css";
  * - 공통 레이아웃(헤더/탭/배경)은 Layout이 처리
  */
 export default function Analyze() {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [analysisStatus, setAnalysisStatus] = useState("idle"); // idle | running | done
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
+    const [analysisStatus, setAnalysisStatus] = useState("idle");
 
   const handleImageSelect = (file, url) => {
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
 
-    if (!file) {
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      setAnalysisStatus("idle");
-      return;
-    }
+    if (!file || !url) {
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setAnalysisStatus("idle");
+        return;
+        }
 
     setSelectedFile(file);
     setPreviewUrl(url);
@@ -42,20 +42,36 @@ export default function Analyze() {
     }, 1000);
   };
 
-  return (
-    <section className="panel upload-panel">
-      <UploadPanel
-        file={selectedFile}
-        previewUrl={previewUrl}
-        analysisStatus={analysisStatus}
-        onSelect={handleImageSelect}
-        onAnalyze={handleAnalyze}
-      />
+  useEffect(()=>{
+    return () =>{
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+        }
+    };
+  },[previewUrl])
 
-      <BrickGuidePanel
-        analysisStatus={analysisStatus}
-        fileName={selectedFile?.name ?? ""}
-      />
+  return (
+    <section className="analyze-page">
+      <h1 className="analyze-title">이미지 분석</h1>
+      <p className="analyze-subtitle">
+        이미지를 업로드하면 레고 브릭 조합과 조립 단계를 안내해 줄 예정입니다.
+        지금은 샘플 데이터를 이용해 화면 구조를 먼저 확인하는 단계입니다.
+      </p>
+
+      <div className="analyze-layout">
+        <UploadPanel
+          file={selectedFile}
+          previewUrl={previewUrl}
+          analysisStatus={analysisStatus}
+          onSelect={handleImageSelect}
+          onAnalyze={handleAnalyze}
+        />
+
+        <BrickGuidePanel
+          analysisStatus={analysisStatus}
+          fileName={selectedFile?.name ?? ""}
+        />
+      </div>
     </section>
   );
 }
