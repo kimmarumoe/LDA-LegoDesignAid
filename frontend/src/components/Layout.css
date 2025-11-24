@@ -88,3 +88,27 @@
   margin: 0 auto;
   padding: 0px 24px 40px;
 }
+
+/* ===== 공통 섹션 타이포그래피 ===== */
+
+.section-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.section-desc {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #4b5563;
+  max-width: 600px;
+}

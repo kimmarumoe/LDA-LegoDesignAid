@@ -53,13 +53,13 @@ export default function Home() {
       <section className="home-how">
         <div className="home-how-inner">
           <div className="home-how-left">
-            <p className="home-eyebrow">HOW IT WORKS</p>
-            <h2 className="home-how-title">
+            <p className="section-eyebrow">HOW IT WORKS</p>
+            <h2 className="section-title home-how-title">
               이미지를 올리면
               <br />
               브릭 구성을 상상해 볼 수 있어요
             </h2>
-            <p className="home-how-desc">
+            <p className="section-desc home-how-desc">
               아직은 완성된 상용 서비스가 아니라, 레고를 좋아하는 개발자가
               실험하는 토이 프로젝트입니다. 업로드한 이미지를 기준으로 필요한
               브릭의 색상, 형태, 크기 구성을 어떻게 나눌지 단계별로 정리해 보는

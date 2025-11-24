@@ -149,7 +149,7 @@
   right: 36px;
 }
 
-/* ===== HOW IT WORKS 섹션 ===== */
+/* HOW IT WORKS 섹션 */
 
 .home-how {
   margin-bottom: 32px;
@@ -161,42 +161,21 @@
   align-items: flex-start;
 }
 
+/* 왼쪽 영역은 그대로 */
 .home-how-left {
   flex: 1.2;
 }
 
-.home-eyebrow {
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: #9ca3af;
-  margin-bottom: 8px;
-}
-
+/* 타이틀은 공통(section-title) 쓰고, 필요시 여백만 보정 */
 .home-how-title {
-  font-size: 22px;
-  font-weight: 700;
-  margin: 0 0 10px;
+  margin-top: 4px; /* 선택 사항: 살짝 내려주고 싶으면 */
 }
 
+/* 설명은 공통(section-desc) + 홈 전용 너비만 */
 .home-how-desc {
-  font-size: 14px;
-  line-height: 1.7;
-  color: #4b5563;
-  margin: 0 0 12px;
   max-width: 520px;
 }
 
-.home-how-steps {
-  margin: 0;
-  padding-left: 1.2rem;
-  font-size: 13px;
-  color: #4b5563;
-}
-
-.home-how-steps li + li {
-  margin-top: 3px;
-}
 
 /* 오른쪽 팔레트 카드 */
 
