@@ -4,8 +4,7 @@
    - 좌측 업로드 카드
    - 우측 브릭 분석 & 조립 가이드 카드 */
 
-/* ===== 페이지 레이아웃 ===== */
-
+/* ===== 페이지 레이아웃 ===== */ 
 .analyze-page {
   display: flex;
   flex-direction: column;
@@ -224,7 +223,6 @@
 }
 
 /* 상단 상태/파일명/툴바 */
-
 .result-header {
   display: flex;
   justify-content: space-between;
@@ -244,7 +242,6 @@
 }
 
 /* 상태에 따른 뱃지 색상 */
-
 .result-badge.is-idle {
   background-color: #f9fafb;
   color: #6b7280;
@@ -257,7 +254,6 @@
 }
 
 /* 분석중 */
-
 .result-badge.is-running {
   background-color: #eff6ff;
   border-color: #bfdbfe;
@@ -265,7 +261,6 @@
 }
 
 /* 분석 완료 */
-
 .result-badge.is-done {
   background-color: #eef2ff;
   border-color: #c7d2fe;
@@ -283,7 +278,6 @@
 }
 
 /* 샘플 결과 보기 버튼 */
-
 .btn-outline {
   border-radius: 999px;
   border: 1px solid #e5e7eb;
@@ -298,13 +292,11 @@
 }
 
 /* 본문 영역 */
-
 .result-body {
   margin-top: 1rem;
 }
 
 /* 분석 전(빈) 상태 */
-
 .result-placeholder {
   border-radius: 0.75rem;
   border: 1px dashed #e5e7eb;
@@ -330,7 +322,6 @@
 }
 
 /* 샘플 결과 레이아웃 */
-
 .result-sample {
   display: flex;
   flex-direction: column;
@@ -338,7 +329,6 @@
 }
 
 /* 상단 요약 카드 */
-
 .result-summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -364,7 +354,6 @@
 }
 
 /* 브릭 그룹 / 조립 가이드 공통 섹션 */
-
 .result-section {
   border-radius: 0.75rem;
   border: 1px solid #e5e7eb;
