@@ -21,3 +21,5 @@ venv/
 .env
 .env.*
 
+# ai 서버 폴더는 이 레포에서 제외
+ai-server/

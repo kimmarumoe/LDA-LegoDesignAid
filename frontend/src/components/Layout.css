@@ -1,0 +1,114 @@
+/* src/components/Layout.css */
+/* 앱 공통 레이아웃 + 상단 네비게이션 */
+
+.app-root {
+  min-height: 100vh;
+  background: #f5f7fb;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== 상단 네비게이션 바 ===== */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(245, 247, 251, 0.96);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.app-header-inner {
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* 왼쪽 LDA 로고 텍스트 */
+
+.app-logo {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  color: #111827;
+}
+
+/* 오른쪽 메뉴 */
+
+.app-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.app-nav-link {
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #4b5563;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.app-nav-link:hover {
+  background: #e5e7eb;
+}
+
+.app-nav-link-active {
+  background: #0f766e;
+  color: #f9fafb;
+}
+
+/* 모바일에서 살짝 내려서 정렬 */
+
+@media (max-width: 640px) {
+  .app-header-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .app-nav {
+    justify-content: flex-start;
+  }
+}
+
+/* ===== 메인 컨테이너 ===== */
+
+.app-main {
+  flex: 1;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0px 24px 40px;
+}
+
+/* ===== 공통 섹션 타이포그래피 ===== */
+
+.section-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.section-desc {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #4b5563;
+  max-width: 600px;
+}
