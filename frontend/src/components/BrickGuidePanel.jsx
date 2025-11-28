@@ -54,7 +54,7 @@ import { useState } from "react";
                     <h2>2.브릭분석 &amp; 조립가이드 </h2>
                    <span className={`result-badge ${badgeClass}`}>{statusLabel}</span>
                 </div>
-                {hasFile && ( <p className="result-file-name">선택된 이미지 : <string>{fileName}</string></p>)}
+                {hasFile && ( <p className="result-file-name">선택된 이미지 : <span>{fileName}</span></p>)}
                 
 
       {/* 우측 상단 툴바 (샘플 보기용 버튼) */}

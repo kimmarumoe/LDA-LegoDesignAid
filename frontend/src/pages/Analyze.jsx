@@ -4,6 +4,7 @@ import UploadPanel from "../components/UploadPanel.jsx";
 import BrickGuidePanel from "../components/BrickGuidePanel.jsx";
 import "./Analyze.css";
 import { createGuide } from "../api/guideClient";
+import { SAMPLE_GUIDE } from "../sample/sampleGuide";
 
 /**
  * Analyze 페이지
@@ -14,42 +15,50 @@ export default function Analyze() {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [analysisStatus, setAnalysisStatus] = useState("idle"); // idle | running | done
 
-  // 이미지 선택 시 상태 갱신
-  const handleImageSelect = (file, url) => {
-    setSelectedFile(file);
-    setPreviewUrl(url);
-    setAnalysisStatus("idle");
-  };
+  // STEP 01: 이미지 분석 결과(브릭 가이드) 샘플 상태
+  const [analysisGuide, setAnalysisGuide] = useState(null);
 
-  // 분석 실행 (지금은 샘플 데이터 모드)
-  const handleAnalyze = () => {
-    if (!selectedFile || analysisStatus === "running") return;
-
-    setAnalysisStatus("running");
-
-    // TODO: 실제 백엔드 연동 예정
-    setTimeout(() => {
-      setAnalysisStatus("done");
-    }, 800);
-  };
-
-  // todo : 실제분석 결과로 교체
-  const [bricks] = useState([
-    { id: "x0-y0-z0-red-1x1", x: 0, y: 0, z: 0, color: "red", type: "1x1" },
-    { id: "x1-y0-z0-red-1x1", x: 1, y: 0, z: 0, color: "red", type: "1x1" },
-    { id: "x0-y1-z0-blue-1x1", x: 0, y: 1, z: 0, color: "blue", type: "1x1" },
-  ]);
-
+  // STEP 02: 조립 가이드 결과 상태 (OpenAI 등으로 생성되는 텍스트 가이드)
   const [guide, setGuide] = useState(null);
   const [loadingGuide, setLoadingGuide] = useState(false);
   const [error, setError] = useState(null);
 
-  const designTitle = "슈퍼마리오 모자이크";
-  const mosaicWidth = 48;
-  const mosaicHeight = 48;
+  // STEP 01/02 공통으로 사용하는 샘플 브릭/메타 데이터
+  const bricks = SAMPLE_GUIDE.bricks;
+  const designTitle = SAMPLE_GUIDE.summary?.title ?? "슈퍼마리오 모자이크";
+  const mosaicWidth = SAMPLE_GUIDE.width ?? 48;
+  const mosaicHeight = SAMPLE_GUIDE.height ?? 48; // TODO: 필요 시 메타에 포함
 
+  // 이미지 선택 시 상태 갱신
+  const handleImageSelect = (file, url) => {
+    setSelectedFile(file);
+    setPreviewUrl(url);
+
+    // 새 이미지를 선택하면 분석 상태/결과 초기화
+    setAnalysisStatus("idle");
+    setAnalysisGuide(null);
+  };
+
+  // STEP 01 · 분석 실행 (지금은 샘플 데이터 모드)
+  const handleAnalyze = async () => {
+    if (!selectedFile || analysisStatus === "running") return;
+
+    setAnalysisStatus("running");
+
+    try {
+      // 실제 백엔드 연동 전까지는 샘플 데이터로 UI만 테스트
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      setAnalysisGuide(SAMPLE_GUIDE);
+      setAnalysisStatus("done");
+    } catch (e) {
+      console.error("이미지 분석 중 오류:", e);
+      setAnalysisStatus("idle");
+    }
+  };
+
+  // STEP 02 · 조립 가이드 생성 (OpenAI 가이드 문장화)
   const handleGenerateGuide = async () => {
-    if (!bricks.length) {
+    if (!bricks || !bricks.length) {
       setError("먼저 브릭 데이터가 필요합니다.");
       return;
     }
@@ -60,13 +69,13 @@ export default function Analyze() {
     try {
       const meta = {
         title: designTitle,
-        width: mosaicWidth,   
+        width: mosaicWidth,
         language: "ko",
       };
 
       const result = await createGuide(bricks, meta);
       setGuide(result);
-    } catch (err) {          
+    } catch (err) {
       console.error(err);
       setError(
         err instanceof Error
@@ -116,6 +125,7 @@ export default function Analyze() {
         <BrickGuidePanel
           analysisStatus={analysisStatus}
           fileName={selectedFile?.name ?? ""}
+          guide={analysisGuide}
         />
       </section>
 
