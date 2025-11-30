@@ -13,7 +13,11 @@ export default function Sample() {
 
   // 샘플 카드를 클릭했을 때 Analyze 페이지로 이동
   const handleOpenAnalyze = (mosaic) => {
-    navigate("/analyze", { state: { sampleId: mosaic.id } });
+    navigate("/analyze", { state: {  
+        sampleId: mosaic.id,
+        title: mosaic.title,
+        width: mosaic.width,
+        height: mosaic.height, } });
   };
 
   return (

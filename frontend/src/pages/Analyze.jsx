@@ -1,10 +1,10 @@
 // frontend/src/pages/Analyze.jsx
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import UploadPanel from "../components/UploadPanel.jsx";
 import BrickGuidePanel from "../components/BrickGuidePanel.jsx";
 import "./Analyze.css";
 import { createGuide } from "../api/guideClient";
-import { SAMPLE_GUIDE } from "../sample/sampleGuide";
 
 /**
  * Analyze 페이지
@@ -15,50 +15,47 @@ export default function Analyze() {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [analysisStatus, setAnalysisStatus] = useState("idle"); // idle | running | done
 
-  // STEP 01: 이미지 분석 결과(브릭 가이드) 샘플 상태
-  const [analysisGuide, setAnalysisGuide] = useState(null);
-
-  // STEP 02: 조립 가이드 결과 상태 (OpenAI 등으로 생성되는 텍스트 가이드)
-  const [guide, setGuide] = useState(null);
-  const [loadingGuide, setLoadingGuide] = useState(false);
-  const [error, setError] = useState(null);
-
-  // STEP 01/02 공통으로 사용하는 샘플 브릭/메타 데이터
-  const bricks = SAMPLE_GUIDE.bricks;
-  const designTitle = SAMPLE_GUIDE.summary?.title ?? "슈퍼마리오 모자이크";
-  const mosaicWidth = SAMPLE_GUIDE.width ?? 48;
-  const mosaicHeight = SAMPLE_GUIDE.height ?? 48; // TODO: 필요 시 메타에 포함
+  // 샘플 페이지에서 넘어온 선택 정보 (없으면 null)
+  const location = useLocation();
+  const sampleFromNav = location.state ?? null;
 
   // 이미지 선택 시 상태 갱신
   const handleImageSelect = (file, url) => {
     setSelectedFile(file);
     setPreviewUrl(url);
-
-    // 새 이미지를 선택하면 분석 상태/결과 초기화
     setAnalysisStatus("idle");
-    setAnalysisGuide(null);
   };
 
-  // STEP 01 · 분석 실행 (지금은 샘플 데이터 모드)
-  const handleAnalyze = async () => {
+  // 분석 실행 (지금은 샘플 데이터 모드)
+  const handleAnalyze = () => {
     if (!selectedFile || analysisStatus === "running") return;
 
     setAnalysisStatus("running");
 
-    try {
-      // 실제 백엔드 연동 전까지는 샘플 데이터로 UI만 테스트
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setAnalysisGuide(SAMPLE_GUIDE);
+    // TODO: 실제 백엔드 연동 예정
+    setTimeout(() => {
       setAnalysisStatus("done");
-    } catch (e) {
-      console.error("이미지 분석 중 오류:", e);
-      setAnalysisStatus("idle");
-    }
+    }, 800);
   };
 
-  // STEP 02 · 조립 가이드 생성 (OpenAI 가이드 문장화)
+  // todo : 실제분석 결과로 교체
+  const [bricks] = useState([
+    { id: "x0-y0-z0-red-1x1", x: 0, y: 0, z: 0, color: "red", type: "1x1" },
+    { id: "x1-y0-z0-red-1x1", x: 1, y: 0, z: 0, color: "red", type: "1x1" },
+    { id: "x0-y1-z0-blue-1x1", x: 0, y: 1, z: 0, color: "blue", type: "1x1" },
+  ]);
+
+  const [guide, setGuide] = useState(null);
+  const [loadingGuide, setLoadingGuide] = useState(false);
+  const [error, setError] = useState(null);
+
+  // 샘플 정보가 있으면 그 값, 없으면 기본값 사용
+  const designTitle = sampleFromNav?.title ?? "슈퍼마리오 모자이크";
+  const mosaicWidth = sampleFromNav?.width ?? 48;
+  const mosaicHeight = sampleFromNav?.height ?? 48;
+
   const handleGenerateGuide = async () => {
-    if (!bricks || !bricks.length) {
+    if (!bricks.length) {
       setError("먼저 브릭 데이터가 필요합니다.");
       return;
     }
@@ -70,6 +67,7 @@ export default function Analyze() {
       const meta = {
         title: designTitle,
         width: mosaicWidth,
+        height: mosaicHeight,
         language: "ko",
       };
 
@@ -112,6 +110,21 @@ export default function Analyze() {
         </p>
       </header>
 
+      {/* 선택된 샘플 정보 배너 (샘플에서 넘어온 경우만) */}
+      {sampleFromNav && (
+        <section className="panel analyze-selected-sample">
+          <p className="section-eyebrow">선택한 샘플</p>
+          <p className="analyze-selected-title">
+            {sampleFromNav.title} ({sampleFromNav.width} ×{" "}
+            {sampleFromNav.height} stud 기준)
+          </p>
+          <p className="section-desc analyze-selected-desc">
+            지금은 선택한 샘플 데이터를 기준으로 브릭 분석과 조립 가이드를
+            생성합니다.
+          </p>
+        </section>
+      )}
+
       {/* 업로드 패널 + 브릭 가이드 패널 */}
       <section className="analyze-layout">
         <UploadPanel
@@ -125,7 +138,6 @@ export default function Analyze() {
         <BrickGuidePanel
           analysisStatus={analysisStatus}
           fileName={selectedFile?.name ?? ""}
-          guide={analysisGuide}
         />
       </section>
 
@@ -136,8 +148,8 @@ export default function Analyze() {
           샘플 브릭으로 조립 가이드를 만들어봐요
         </h2>
         <p className="section-desc">
-          지금은 샘플 브릭 데이터로만 가이드를 생성합니다. 나중에는 위에서 분석된
-          브릭 데이터를 그대로 연결할 예정입니다.
+          지금은 샘플 브릭 데이터로만 가이드를 생성합니다. 나중에는 위에서
+          분석된 브릭 데이터를 그대로 연결할 예정입니다.
         </p>
 
         <button
