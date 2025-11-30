@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 
         // 샘플 데이터 
@@ -36,6 +36,15 @@ import { useState } from "react";
             setShowSample((prev)=>!prev);
         };
 
+        useEffect(()=>{
+          if(analysisStatus ==="done"){
+            setShowSample(true);
+          }else if (analysisStatus === "idle"){
+            setShowSample(false);
+          }
+        },[analysisStatus]);
+      
+
         let statusLabel = "분석 대기 중";
         let badgeClass = "is-idle";
         if (analysisStatus === "running") {
@@ -57,11 +66,13 @@ import { useState } from "react";
                 {hasFile && ( <p className="result-file-name">선택된 이미지 : <span>{fileName}</span></p>)}
                 
 
-      {/* 우측 상단 툴바 (샘플 보기용 버튼) */}
-     <div className="result-toolbar">
+  {/* 우측 상단 툴바 (샘플 보기용 버튼) */}
+  <div className="result-toolbar">
     <button type="button"
             className="btn-outline"
-            onClick={toggleSample}>
+            onClick={toggleSample}
+            disabled={analysisStatus==="rinning"}
+    >
       {showSample ? "빈 상태로 보기" : "샘플 결과 보기"}
     </button>
   </div>
