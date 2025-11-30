@@ -6,7 +6,7 @@ import "./Layout.css";
 const NAV_ITEMS = [
   { to: "/", label: "홈", end: true },
   { to: "/analyze", label: "분석" },
-  { to: "/gallery", label: "샘플" },
+  { to: "/sample", label: "샘플" },
 ];
 
 /**
