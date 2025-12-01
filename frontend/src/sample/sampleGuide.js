@@ -41,3 +41,48 @@ export const SAMPLE_GUIDE = {
     { id: "b-9", x: 8,  y: 8,  z: 0, color: "#facc15", colorName: "Yellow", type: "1x1" },
   ],
 };
+export const SAMPLE_GUIDE_PRESETS = {
+  // 샘플 페이지에서 사용할 기본 샘플 id
+  // 예: Sample.jsx / sampleMosaics.js 에서 "smile-16" 이라는 id를 쓴다고 가정
+  "smile-16": {
+    summary: {
+      // 위에 있는 SAMPLE_GUIDE.summary 값을 재활용해도 되고,
+      // UI에 맞게 별도 값으로 둬도 됨
+      totalBricks: SAMPLE_GUIDE.summary.totalBricks,
+      uniqueTypes: SAMPLE_GUIDE.summary.distinctColors,
+      difficulty: SAMPLE_GUIDE.summary.difficulty,
+      estimatedTime: "30~45분",
+    },
+    groups: [
+      {
+        name: "기본 브릭",
+        items: ["2x2 노랑 4개", "1x1 노랑 2개"],
+      },
+      {
+        name: "포인트 색상",
+        items: ["1x1 검정 3개 (눈/입)"],
+      },
+    ],
+    steps: [
+      {
+        step: 1,
+        title: "1단계: 바닥 윤곽 잡기",
+        hint: "16x16 베이스 가운데를 기준으로 얼굴이 들어갈 영역을 대략 잡아 주세요.",
+      },
+      {
+        step: 2,
+        title: "2단계: 눈/입 배치하기",
+        hint: "검정 1x1 브릭 3개를 사용해 양쪽 눈과 입 위치를 먼저 고정합니다.",
+      },
+      {
+        step: 3,
+        title: "3단계: 노란색 채우기",
+        hint: "나머지 빈 자리를 노란색 브릭으로 채워 얼굴 형태를 완성합니다.",
+      },
+    ],
+    tips: [
+      "눈과 입 위치를 먼저 고정해두고 주변을 채우면 모양 맞추기가 쉽습니다.",
+      "작은 브릭은 마지막에 한 번에 배치하면 손이 덜 꼬입니다.",
+    ],
+  },
+};
