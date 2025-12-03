@@ -1,35 +1,20 @@
 // frontend/src/components/UploadPanel.jsx
-
-// 이미지 업로드, 미리보기
 export default function UploadPanel({
-  file,
+  selectedFile,
   previewUrl,
-  onSelect,
-  onAnalyze,
   analysisStatus,
+  onImageSelect,
+  onAnalyze,
 }) {
-  const handleFileChange = (event) => {
-    const selected = event.target.files?.[0];
+  const handleFileChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
 
-    if (!selected) {
-      // 파일 선택을 취소한 경우
-      onSelect?.(null, null);
-      return;
-    }
-
-    const url = URL.createObjectURL(selected);
-    onSelect?.(selected, url);
+    const url = URL.createObjectURL(file);
+    onImageSelect?.(file, url);
   };
 
-  const hasFile = !!file;
-  const isRunning = analysisStatus === "running";
-
-  let buttonLabel = "이미지 분석 시작";
-  if (analysisStatus === "running") {
-    buttonLabel = "분석 중...";
-  } else if (analysisStatus === "done") {
-    buttonLabel = "다시 분석하기";
-  }
+  const isAnalyzing = analysisStatus === "running";
 
   return (
     <section className="panel upload-panel">
@@ -39,17 +24,19 @@ export default function UploadPanel({
       </p>
 
       {/* 파일 선택 */}
-      <div className="upload-control">
-        <label className="upload-label">
-          이미지 선택하세요
+      <div className="upload-field">
+        <label className="btn-primary">
+          이미지 선택
           <input
             type="file"
             accept="image/*"
             onChange={handleFileChange}
+            style={{ display: "none" }}
           />
         </label>
-        {file && (
-          <p className="upload-filename">선택된 파일: {file.name}</p>
+
+        {selectedFile && (
+          <span className="upload-file-name">{selectedFile.name}</span>
         )}
       </div>
 
@@ -58,11 +45,11 @@ export default function UploadPanel({
         {previewUrl ? (
           <img
             src={previewUrl}
-            alt="미리보기"
+            alt="업로드 미리보기"
             className="upload-preview-image"
           />
         ) : (
-          <p className="preview-placeholder">
+          <p className="upload-preview-placeholder">
             아직 선택된 이미지가 없습니다.
           </p>
         )}
@@ -74,14 +61,10 @@ export default function UploadPanel({
           type="button"
           className="btn-primary"
           onClick={onAnalyze}
-          disabled={!hasFile || isRunning}
+          disabled={isAnalyzing || !selectedFile}
         >
-          {buttonLabel}
+          {isAnalyzing ? "분석 중..." : "분석 실행"}
         </button>
-        <p className="upload-actions-hint">
-          이미지를 선택한 뒤 &quot;이미지 분석&quot; 버튼을 누르면 오른쪽
-          패널에 브릭 추천 결과와 조립 가이드가 표시됩니다.
-        </p>
       </div>
     </section>
   );

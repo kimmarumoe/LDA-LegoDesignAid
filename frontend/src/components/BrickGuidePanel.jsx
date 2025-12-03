@@ -42,24 +42,37 @@ const sampleResult = {
   ],
 };
 
-function BrickGuidePanel({ analysisStatus = "idle", fileName }) {
+function BrickGuidePanel({
+  analysisStatus = "idle",
+  fileName,
+  guideResult = null,
+}) {
   const [showSample, setShowSample] = useState(false);
 
   const toggleSample = () => {
     setShowSample((prev) => !prev);
   };
 
-  // 분석 상태에 따른 자동 토글
+  // 분석 상태 + 실제 결과 유무에 따른 자동 토글
   useEffect(() => {
     if (analysisStatus === "done") {
-      setShowSample(true);
+      if (guideResult) {
+        // 실제 분석 결과가 있으면 실제 결과를 우선 보여줌
+        setShowSample(false);
+      } else {
+        // 아직 결과가 없으면 샘플 레이아웃으로 안내
+        setShowSample(true);
+      }
     } else if (analysisStatus === "idle") {
+      // 초기 상태로 돌아가면 샘플도 끔
       setShowSample(false);
     }
-  }, [analysisStatus]);
+  }, [analysisStatus, guideResult]);
 
+  // 상태 라벨/뱃지 클래스
   let statusLabel = "분석 대기 중";
   let badgeClass = "is-idle";
+
   if (analysisStatus === "running") {
     statusLabel = "분석 중...";
     badgeClass = "is-running";
@@ -69,6 +82,25 @@ function BrickGuidePanel({ analysisStatus = "idle", fileName }) {
   }
 
   const hasFile = !!fileName;
+  const hasGuide = !!guideResult;
+
+  // 샘플 또는 실제 결과 선택
+  const data = showSample ? sampleResult : guideResult ?? sampleResult;
+
+  const shouldShowResult = (showSample || hasGuide) && !!data;
+
+  const summary = data?.summary;
+  const groups = data?.groups ?? [];
+  const steps = data?.steps ?? [];
+  const tips = data?.tips ?? [];
+
+  // 버튼 라벨: 샘플 ↔ 실제/빈 화면 전환
+  let toggleLabel;
+  if (showSample) {
+    toggleLabel = hasGuide ? "실제 결과 보기" : "빈 상태로 보기";
+  } else {
+    toggleLabel = "샘플 결과 보기";
+  }
 
   return (
     <section className="panel result-panel">
@@ -83,87 +115,110 @@ function BrickGuidePanel({ analysisStatus = "idle", fileName }) {
         </p>
       )}
 
-      {/* 우측 상단 툴바 (샘플 보기용 버튼) */}
+      {/* 우측 상단 툴바 (샘플/실제 보기용 버튼) */}
       <div className="result-toolbar">
         <button
           type="button"
           className="btn-outline"
           onClick={toggleSample}
-          disabled={analysisStatus === "running"} // 🔧 오타 수정
+          disabled={analysisStatus === "running"}
         >
-          {showSample ? "빈 상태로 보기" : "샘플 결과 보기"}
+          {toggleLabel}
         </button>
       </div>
 
       <div className="result-body">
-        {showSample ? (
-          /* 샘플 결과 화면 */
+        {shouldShowResult ? (
+          /* 샘플 또는 실제 결과 화면 */
           <div className="result-sample">
             {/* 요약 카드들 */}
-            <div className="result-summary-grid">
-              <div className="result-summary-item">
-                <div className="result-summary-label">총 브릭 수</div>
-                <div className="result-summary-value">
-                  {sampleResult.summary.totalBricks} 개
+            {summary && (
+              <div className="result-summary-grid">
+                <div className="result-summary-item">
+                  <div className="result-summary-label">총 브릭 수</div>
+                  <div className="result-summary-value">
+                    {summary.totalBricks} 개
+                  </div>
+                </div>
+                <div className="result-summary-item">
+                  <div className="result-summary-label">브릭 종류</div>
+                  <div className="result-summary-value">
+                    {summary.uniqueTypes} 타입
+                  </div>
+                </div>
+                <div className="result-summary-item">
+                  <div className="result-summary-label">
+                    난이도 / 예상 시간
+                  </div>
+                  <div className="result-summary-value">
+                    {summary.difficulty} · {summary.estimatedTime}
+                  </div>
                 </div>
               </div>
-              <div className="result-summary-item">
-                <div className="result-summary-label">브릭 종류</div>
-                <div className="result-summary-value">
-                  {sampleResult.summary.uniqueTypes} 타입
-                </div>
-              </div>
-              <div className="result-summary-item">
-                <div className="result-summary-label">난이도 / 예상 시간</div>
-                <div className="result-summary-value">
-                  {sampleResult.summary.difficulty} ·{" "}
-                  {sampleResult.summary.estimatedTime}
-                </div>
-              </div>
-            </div>
+            )}
 
             {/* 색상/종류별 그룹 */}
-            <div>
-              <h3 className="result-section-title">브릭 구성</h3>
-              <div className="result-groups">
-                {sampleResult.groups.map((group) => (
-                  <div key={group.name} className="result-group">
-                    <div className="result-group-name">{group.name}</div>
-                    <ul className="result-group-list">
-                      {group.items.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+            {groups.length > 0 && (
+              <div>
+                <h3 className="result-section-title">브릭 구성</h3>
+                <div className="result-groups">
+                  {groups.map((group, idx) => (
+                    <div
+                      key={group.name ?? group.id ?? idx}
+                      className="result-group"
+                    >
+                      <div className="result-group-name">
+                        {group.name ?? group.title ?? "그룹"}
+                      </div>
+                      <ul className="result-group-list">
+                        {(group.items ?? []).map((item, i) => (
+                          <li key={`${item}-${i}`}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* 단계별 조립 가이드 */}
-            <div>
-              <h3 className="result-section-title">단계별 조립 가이드</h3>
-              <div className="result-steps">
-                {sampleResult.steps.map((s) => (
-                  <div key={s.step} className="result-step">
-                    <span className="result-step-num">STEP {s.step}</span>
-                    <div className="result-step-body">
-                      <div className="result-step-title">{s.title}</div>
-                      <div className="result-step-hint">{s.hint}</div>
+            {steps.length > 0 && (
+              <div>
+                <h3 className="result-section-title">단계별 조립 가이드</h3>
+                <div className="result-steps">
+                  {steps.map((s, idx) => (
+                    <div
+                      key={s.step ?? idx}
+                      className="result-step"
+                    >
+                      <span className="result-step-num">
+                        STEP {s.step ?? idx + 1}
+                      </span>
+                      <div className="result-step-body">
+                        <div className="result-step-title">
+                          {s.title ?? "단계"}
+                        </div>
+                        {s.hint && (
+                          <div className="result-step-hint">{s.hint}</div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* 팁 영역 */}
-            <div className="result-tips">
-              <div className="result-section-title">조립 팁</div>
-              <ul>
-                {sampleResult.tips.map((tip) => (
-                  <li key={tip}>{tip}</li>
-                ))}
-              </ul>
-            </div>
+            {tips.length > 0 && (
+              <div className="result-tips">
+                <div className="result-section-title">조립 팁</div>
+                <ul>
+                  {tips.map((tip, idx) => (
+                    <li key={`${tip}-${idx}`}>{tip}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         ) : (
           /* 분석 전(빈) 상태 화면 */
