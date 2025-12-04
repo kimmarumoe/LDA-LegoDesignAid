@@ -1,5 +1,6 @@
 // frontend/src/components/BrickGuidePanel.jsx
 import { useEffect, useState } from "react";
+import BrickPalettePanel from "./BrickPalettePanel.jsx";
 
 // 샘플 데이터
 const sampleResult = {
@@ -157,6 +158,9 @@ function BrickGuidePanel({
               </div>
             )}
 
+            {/* 🔹 브릭 색상 팔레트 섹션 */}
+            <BrickPalettePanel />
+
             {/* 색상/종류별 그룹 */}
             {groups.length > 0 && (
               <div>
@@ -187,10 +191,7 @@ function BrickGuidePanel({
                 <h3 className="result-section-title">단계별 조립 가이드</h3>
                 <div className="result-steps">
                   {steps.map((s, idx) => (
-                    <div
-                      key={s.step ?? idx}
-                      className="result-step"
-                    >
+                    <div key={s.step ?? idx} className="result-step">
                       <span className="result-step-num">
                         STEP {s.step ?? idx + 1}
                       </span>
