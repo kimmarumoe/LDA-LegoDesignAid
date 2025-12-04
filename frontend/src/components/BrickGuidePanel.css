@@ -1,0 +1,117 @@
+/* frontend/src/components/BrickGuidePanel.css */
+/* BrickGuidePanel / BrickPalettePanel 전용 스타일 */
+
+/* ===== 브릭 색상 팔레트 섹션 기본 레이아웃 ===== */
+
+.palette-panel {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* 팔레트 안에서만 적용되는 헤더/제목/설명 */
+.palette-panel .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.palette-panel .panel-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.palette-panel .panel-desc {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.82rem;
+  color: #4b5563;
+}
+
+.palette-total {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+/* ===== 팔레트 그리드 ===== */
+
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* ===== 팔레트 아이템 ===== */
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.08s ease;
+}
+
+.palette-item:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.08);
+  transform: translateY(-1px);
+}
+
+.palette-item.is-active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.4);
+}
+
+/* ===== 색상칩 ===== */
+
+.palette-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  flex-shrink: 0;
+}
+
+/* ===== 텍스트 영역 ===== */
+
+.palette-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.palette-name-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+.palette-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+.palette-ratio {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.palette-count {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
