@@ -1,10 +1,7 @@
 /* frontend/src/pages/Analyze.css */
 /* Analyze(이미지 분석) 페이지 전용 스타일 */
-/* - 상단 설명 영역
-   - 좌측 업로드 카드
-   - 우측 브릭 분석 & 조립 가이드 카드 */
 
-/* ===== 페이지 레이아웃 ===== */ 
+/* ===== 페이지 레이아웃 ===== */
 .analyze-page {
   display: flex;
   flex-direction: column;
@@ -13,34 +10,38 @@
   margin-bottom: 40px;
 }
 
-/* 상단 타이틀/설명 */
+/* ===== 상단 인트로 섹션 ===== */
 
-.analyze-header {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+/*.analyze-intro {
+   .panel 공통 스타일 + 추가 여백 정도만 필요하면 여기서 조절 
+}
+*/
+
+.analyze-step-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin: 0 0 4px;
 }
 
-/* 라벨은 공통(section-eyebrow) + 여백만 보정 */
-.analyze-kicker {
-  margin-bottom: 2px;
-}
-
-/* 제목 + 모드 뱃지 한 줄 배치 */
-.analyze-header-row {
+.analyze-intro-header {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  margin-bottom: 6px;
 }
 
-/* 설명은 section-desc + 너비 보정 */
-.analyze-subtitle {
-  max-width: 640px;
+.analyze-intro-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
 }
 
-/* 모드 뱃지 */
-.analyze-pill {
+.badge-sample-mode {
   font-size: 11px;
   padding: 4px 10px;
   border-radius: 999px;
@@ -50,27 +51,15 @@
   white-space: nowrap;
 }
 
-
-/* 샘플 데이터 모드 뱃지 */
-.analyze-pill {
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background-color: #eef2ff;
-  color: #4f46e5;
-  border: 1px solid #c7d2fe;
-  white-space: nowrap;
-}
-
-.analyze-subtitle {
-  margin: 2px 0 0;
+.analyze-intro-desc {
+  margin: 4px 0 0;
   font-size: 14px;
   line-height: 1.7;
   color: #4b5563;
-  max-width: 600px;
+  max-width: 680px;
 }
 
-/* 업로드/결과 패널 레이아웃 */
+/* ===== 업로드/결과 패널 레이아웃 ===== */
 
 .analyze-layout {
   display: grid;
@@ -79,7 +68,6 @@
 }
 
 /* 모바일에서는 세로로 쌓기 */
-
 @media (max-width: 900px) {
   .analyze-layout {
     grid-template-columns: 1fr;
@@ -122,7 +110,7 @@
   gap: 8px;
 }
 
-/* 파일 선택 버튼 */
+/* 파일 선택 버튼 (label 사용 버전) */
 
 .upload-label {
   display: inline-flex;
@@ -146,6 +134,23 @@
   color: #4b5563;
 }
 
+/* 파일 선택 input 을 직접 사용했을 때도 버튼 모양 적용 */
+.upload-panel input[type="file"] {
+  font-size: 0.9rem;
+  color: #f9fafb;
+}
+
+/* 크롬/엣지/사파리 공통 파일 버튼 스타일 */
+.upload-panel input[type="file"]::file-selector-button,
+.upload-panel input[type="file"]::-webkit-file-upload-button {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: none;
+  background: #111827;
+  color: #f9fafb;
+  cursor: pointer;
+}
+
 /* 미리보기 영역 */
 
 .upload-preview {
@@ -154,16 +159,20 @@
   border: 1px dashed #e5e7eb;
   background: #f9fafb;
   min-height: 220px;
+  padding: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
 }
 
+/* 이미지가 카드 안에서 전체가 보이도록 */
+.upload-preview img,
 .upload-preview-image {
-  width: 100%;
+  max-width: 100%;
+  width: auto;
   height: auto;
-  object-fit: cover;
+  object-fit: contain;
+  display: block;
 }
 
 .preview-placeholder {
@@ -180,9 +189,11 @@
   gap: 6px;
 }
 
-/* Analyze 페이지용 기본 버튼 스타일 */
-
-.btn-primary {
+/* Analyze 페이지용 기본 버튼 스타일
+   - .btn-primary 를 직접 쓰거나
+   - .upload-actions 안의 button 을 써도 동일 스타일 적용 */
+.btn-primary,
+.upload-actions button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -194,21 +205,21 @@
   background: #0f766e;
   color: #f9fafb;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(15, 118, 110, 0.45);
   align-self: flex-start;
   transition: transform 0.08s ease-out, box-shadow 0.08s ease-out,
     background 0.12s ease-out, opacity 0.12s ease-out;
 }
 
-.btn-primary:disabled {
+.btn-primary:disabled,
+.upload-actions button:disabled {
   opacity: 0.6;
   cursor: default;
   box-shadow: none;
 }
 
-.btn-primary:hover:enabled {
+.btn-primary:hover:enabled,
+.upload-actions button:hover:enabled {
   transform: translateY(-1px);
-  box-shadow: 0 12px 28px rgba(15, 118, 110, 0.55);
 }
 
 .upload-actions-hint {
@@ -248,24 +259,22 @@
   color: #6b7280;
 }
 
-.result-badge.is-ready {
-  background-color: #ecfdf5;
-  border-color: #bbf7d0;
-  color: #15803d;
-}
-
-/* 분석중 */
 .result-badge.is-running {
   background-color: #eff6ff;
   border-color: #bfdbfe;
   color: #1d4ed8;
 }
 
-/* 분석 완료 */
 .result-badge.is-done {
   background-color: #eef2ff;
   border-color: #c7d2fe;
   color: #4f46e5;
+}
+
+.result-badge.is-error {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
 }
 
 .result-file-name {
@@ -442,7 +451,7 @@
   font-size: 0.8rem;
 }
 
-/* 조립 팁 박스 */
+/* 조립 팁 박스 (사용 시) */
 
 .result-tips {
   margin-top: 0.6rem;
@@ -453,7 +462,49 @@
   color: #166534;
 }
 
+/* ===== 하단 샘플 가이드 카드 ===== */
 
+.analyze-sample-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.analyze-sample-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.analyze-sample-desc {
+  margin: 4px 0 12px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+/* 하단 기본 버튼 */
+
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: #0f766e;
+  color: #f9fafb;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out,
+    background 0.12s ease-out, opacity 0.12s ease-out;
+}
+
+.primary-button:hover {
+  transform: translateY(-1px);
+}
 
 /* 반응형 보정 */
 
