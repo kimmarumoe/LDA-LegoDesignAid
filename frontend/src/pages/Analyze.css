@@ -110,19 +110,27 @@
   gap: 8px;
 }
 
-/* 파일 선택 버튼 (label 사용 버전) */
-
-.upload-label {
+/* 파일 선택 / 분석하기 버튼 공통 크기 & 레이아웃 */
+.upload-label,
+.analyze-page .btn-primary,
+.analyze-page .upload-actions button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 16px;
+  padding: 10px 18px;
   border-radius: 999px;
-  background: #111827;
-  color: #f9fafb;
   font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
   border: none;
+  transition: transform 0.06s ease-out, background 0.12s ease-out,
+    opacity 0.12s ease-out;
+}
+
+/* 파일 선택 버튼 색상 */
+.upload-label {
+  background: #111827;
+  color: #f9fafb;
 }
 
 .upload-label input[type="file"] {
@@ -134,13 +142,12 @@
   color: #4b5563;
 }
 
-/* 파일 선택 input 을 직접 사용했을 때도 버튼 모양 적용 */
+/* 파일 선택 input 을 직접 사용했을 때도 버튼 모양 적용 (예비용) */
 .upload-panel input[type="file"] {
   font-size: 0.9rem;
   color: #f9fafb;
 }
 
-/* 크롬/엣지/사파리 공통 파일 버튼 스타일 */
 .upload-panel input[type="file"]::file-selector-button,
 .upload-panel input[type="file"]::-webkit-file-upload-button {
   padding: 10px 16px;
@@ -189,37 +196,29 @@
   gap: 6px;
 }
 
-/* Analyze 페이지용 기본 버튼 스타일
-   - .btn-primary 를 직접 쓰거나
-   - .upload-actions 안의 button 을 써도 동일 스타일 적용 */
-.btn-primary,
-.upload-actions button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 9px 18px;
-  border-radius: 999px;
-  border: none;
-  font-size: 0.85rem;
-  font-weight: 500;
+/* Analyze 페이지용 기본 버튼 색상 (그림자 없음) */
+.analyze-page .btn-primary,
+.analyze-page .upload-actions button {
   background: #0f766e;
   color: #f9fafb;
-  cursor: pointer;
   align-self: flex-start;
-  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out,
-    background 0.12s ease-out, opacity 0.12s ease-out;
-}
-
-.btn-primary:disabled,
-.upload-actions button:disabled {
-  opacity: 0.6;
-  cursor: default;
   box-shadow: none;
 }
 
-.btn-primary:hover:enabled,
-.upload-actions button:hover:enabled {
+/* hover: 파일 선택 + 분석하기 모두 동일 효과 */
+.upload-label:hover,
+.analyze-page .btn-primary:hover:enabled,
+.analyze-page .upload-actions button:hover:enabled {
   transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+/* disabled 상태 */
+.analyze-page .btn-primary:disabled,
+.analyze-page .upload-actions button:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
 }
 
 .upload-actions-hint {
