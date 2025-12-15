@@ -85,12 +85,12 @@
 .btn-primary {
   background: #0f766e;
   color: #f9fafb;
-  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.45);
+  box-shadow: none;
 }
 
 .btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 32px rgba(15, 118, 110, 0.55);
+  transform: none;
+  box-shadow: none;
 }
 
 /* 서브 CTA (흰색 버튼) */
