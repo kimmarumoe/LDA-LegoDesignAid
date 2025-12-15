@@ -201,7 +201,7 @@
 .analyze-page .upload-actions button {
   background: #0f766e;
   color: #f9fafb;
-  align-self: flex-start;
+  cursor: pointer;
   box-shadow: none;
 }
 
