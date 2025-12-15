@@ -12,11 +12,7 @@ function SampleCard({ mosaic, onOpenAnalyze }) {
     thumbnail,
   } = mosaic;
 
-  const handleClick = () => {
-    if (onOpenAnalyze) {
-      onOpenAnalyze(mosaic);
-    }
-  };
+const handleClick = () => onOpenAnalyze?.(mosaic);
 
   return (
     <article className="sample-card">
@@ -74,7 +70,7 @@ function SampleCard({ mosaic, onOpenAnalyze }) {
       <div className="sample-card-footer">
         <button
           type="button"
-          className="btn-primary sample-card-btn"
+          className="btn btn-primary sample-card-btn"
           onClick={handleClick}
         >
           분석 페이지에서 보기
