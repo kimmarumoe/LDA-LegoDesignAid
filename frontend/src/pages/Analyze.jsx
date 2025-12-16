@@ -4,7 +4,8 @@ import { useLocation } from "react-router-dom";
 import UploadPanel from "../components/UploadPanel.jsx";
 import BrickGuidePanel from "../components/BrickGuidePanel.jsx";
 import "./Analyze.css";
-import { analyzeGuide } from "../api/guideClient"; // ✅ multipart 분석 호출
+import { analyzeGuide } from "../api/guideClient";
+
 
 /**
  * Analyze 페이지
