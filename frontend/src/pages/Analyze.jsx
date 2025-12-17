@@ -4,8 +4,12 @@ import { useState } from "react";
 import UploadPanel from "../components/UploadPanel.jsx";
 import BrickGuidePanel from "../components/BrickGuidePanel.jsx";
 import { SAMPLE_GUIDE } from "../sample/sampleGuide.js";
-import { createGuide } from "../api/guideClient.js";
-import "./Analyze.css"; 
+
+// ✅ createGuide → analyzeGuide로 변경
+import { analyzeGuide } from "../api/guideClient";
+
+import "./Analyze.css";
+
 /**
  * Analyze 페이지
  * - 이미지 업로드 + 브릭 분석 & 조립 가이드 담당
@@ -38,14 +42,7 @@ export default function Analyze() {
 
   /** "분석하기" 버튼 클릭 시 */
   const handleAnalyze = async () => {
-    // 0) 이미지가 없으면 에러
-    if (!selectedFile) {
-      setErrorMessage("먼저 이미지를 선택해 주세요.");
-      setAnalysisStatus("error");
-      return;
-    }
-
-    // 1) 샘플 모드일 때: API 호출 없이 SAMPLE_GUIDE 사용
+    // ✅ 1) 샘플 모드일 때: 파일 없어도 SAMPLE_GUIDE로 바로 보여주기
     if (useSample) {
       setGuide(SAMPLE_GUIDE);
       setAnalysisStatus("done");
@@ -53,12 +50,19 @@ export default function Analyze() {
       return;
     }
 
-    // 2) 실제 API 모드
+    // ✅ 2) 실제 API 모드: 파일 필수
+    if (!selectedFile) {
+      setErrorMessage("먼저 이미지를 선택해 주세요.");
+      setAnalysisStatus("error");
+      return;
+    }
+
     try {
       setAnalysisStatus("running");
       setErrorMessage("");
 
-      const result = await createGuide(selectedFile); // GuideResponse 타입
+      // ✅ 핵심: 이미지 파일을 analyzeGuide로 업로드
+      const result = await analyzeGuide(selectedFile);
       setGuide(result);
       setAnalysisStatus("done");
     } catch (err) {
@@ -81,14 +85,20 @@ export default function Analyze() {
             <h1 className="analyze-intro-title">
               이미지를 올려 브릭 분석을 준비해요
             </h1>
-            <span className="badge-sample-mode">샘플 데이터 모드</span>
+
+            {/* ✅ 배지도 샘플/실제 모드에 맞춰 표시하면 더 명확 */}
+            <span className="badge-sample-mode">
+              {useSample ? "샘플 데이터 모드" : "실제 API 모드"}
+            </span>
           </div>
 
           <p className="analyze-intro-desc">
             LDA가 업로드한 이미지를 기반으로 브릭의 색상·형태·구성을 나누고,
             조립 가이드 초안을 만들어 줄 예정입니다.
             <br />
-            다만, 지금은 UI 구조를 먼저 확인하기 위해 샘플 결과만 보여주는 단계입니다.
+            {useSample
+              ? "다만, 지금은 UI 구조를 먼저 확인하기 위해 샘플 결과만 보여주는 단계입니다."
+              : "이제는 실제 API를 호출해 분석 결과를 받아옵니다."}
           </p>
         </section>
 
@@ -129,7 +139,6 @@ export default function Analyze() {
             type="button"
             className="primary-button"
             onClick={() => {
-              // 아직은 샘플용 버튼이니, 추후 실제 기능 연결 예정
               alert("지금은 샘플 단계라 동작하지 않는 버튼입니다 🙂");
             }}
           >
