@@ -1,156 +1,99 @@
 // frontend/src/components/BrickGuidePanel.jsx
-import { useEffect, useState } from "react";
-import BrickPalettePanel from "./BrickPalettePanel.jsx";
 
-// 샘플 데이터
-const sampleResult = {
-  summary: {
-    totalBricks: 124,
-    uniqueTypes: 8,
-    difficulty: "중급",
-    estimatedTime: "60~90분",
-  },
-  groups: [
-    {
-      name: "기본 브릭",
-      items: ["2x2 빨강 30개", "2x4 노랑 20개", "1x2 흰색 16개"],
-    },
-    {
-      name: "포인트 색상",
-      items: ["1x1 검정 12개", "원형 타일 눈 모양 2개"],
-    },
-  ],
-  steps: [
-    {
-      step: 1,
-      title: "바닥 판 만들기",
-      hint: "2x4, 2x2 브릭으로 전체 윤곽을 먼저 잡습니다.",
-    },
-    {
-      step: 2,
-      title: "캐릭터 실루엣 쌓기",
-      hint: "몸통과 머리의 실루엣을 먼저 만든 뒤, 세부를 채웁니다.",
-    },
-    {
-      step: 3,
-      title: "눈/입 등 디테일 추가",
-      hint: "작은 브릭과 타일을 사용해 표정을 완성합니다.",
-    },
-  ],
-  tips: [
-    "동일한 색상의 브릭은 미리 모아두면 조립 시간이 줄어듭니다.",
-    "작은 브릭은 마지막 디테일 단계에서 한 번에 처리하세요.",
-  ],
-};
-
-function BrickGuidePanel({
-  analysisStatus = "idle",
-  fileName,
-  guideResult = null,
+/**
+ * 브릭 분석 패널(= 1단계 결과)
+ * - 책임(SRP): 분석 결과(요약/팔레트)만 보여준다.
+ * - 단계별 조립 가이드는 STEP 02 카드에서 보여준다.
+ */
+export default function BrickGuidePanel({
+  guide,
+  analysisStatus,
+  errorMessage,
+  useSample,
+  selectedFile,
 }) {
-  const [showSample, setShowSample] = useState(false);
-
-  const toggleSample = () => {
-    setShowSample((prev) => !prev);
+  const statusLabelMap = {
+    idle: "분석 대기 중",
+    running: "분석 중...",
+    analyzed: "분석 완료",
+    done: "분석 완료", // STEP 02가 완료돼도 이 패널은 분석 결과만 보여줌
+    error: "오류 발생",
   };
 
-  // 분석 상태 + 실제 결과 유무에 따른 자동 토글
-  useEffect(() => {
-    if (analysisStatus === "done") {
-      if (guideResult) {
-        // 실제 분석 결과가 있으면 실제 결과를 우선 보여줌
-        setShowSample(false);
-      } else {
-        // 아직 결과가 없으면 샘플 레이아웃으로 안내
-        setShowSample(true);
-      }
-    } else if (analysisStatus === "idle") {
-      // 초기 상태로 돌아가면 샘플도 끔
-      setShowSample(false);
-    }
-  }, [analysisStatus, guideResult]);
+  // 기존 CSS 클래스(is-done)를 그대로 활용하기 위해 analyzed/done을 같은 스타일로 처리
+  const statusClassMap = {
+    idle: "is-idle",
+    running: "is-running",
+    analyzed: "is-done",
+    done: "is-done",
+    error: "is-error",
+  };
 
-  // 상태 라벨/뱃지 클래스
-  let statusLabel = "분석 대기 중";
-  let badgeClass = "is-idle";
+  const badgeLabel = statusLabelMap[analysisStatus] ?? "분석 대기 중";
+  const badgeClass = statusClassMap[analysisStatus] ?? "is-idle";
 
-  if (analysisStatus === "running") {
-    statusLabel = "분석 중...";
-    badgeClass = "is-running";
-  } else if (analysisStatus === "done") {
-    statusLabel = "분석 완료";
-    badgeClass = "is-ready";
-  }
+  const summary = guide?.summary ?? null;
+  const palette = guide?.palette ?? [];
 
-  const hasFile = !!fileName;
-  const hasGuide = !!guideResult;
+  const hasAnalysis =
+    Boolean(guide) && (analysisStatus === "analyzed" || analysisStatus === "done");
 
-  // 샘플 또는 실제 결과 선택
-  const data = showSample ? sampleResult : guideResult ?? sampleResult;
-
-  const shouldShowResult = (showSample || hasGuide) && !!data;
-
-  const summary = data?.summary;
-  const groups = data?.groups ?? [];
-  const steps = data?.steps ?? [];
-  const tips = data?.tips ?? [];
-
-  // 버튼 라벨: 샘플 ↔ 실제/빈 화면 전환
-  let toggleLabel;
-  if (showSample) {
-    toggleLabel = hasGuide ? "실제 결과 보기" : "빈 상태로 보기";
-  } else {
-    toggleLabel = "샘플 결과 보기";
-  }
+  const fileLabel = useSample
+    ? "샘플 모드"
+    : selectedFile?.name || "선택된 파일 없음";
 
   return (
     <section className="panel result-panel">
+      <h2>2. 브릭 분석 &amp; 조립 가이드{useSample ? " (샘플)" : ""}</h2>
+      <p className="panel-desc">
+        이미지를 업로드한 뒤, 왼쪽의 <strong>“분석하기”</strong> 버튼을 눌러주세요.
+      </p>
+
       <div className="result-header">
-        <h2>2.브릭분석 &amp; 조립가이드 </h2>
-        <span className={`result-badge ${badgeClass}`}>{statusLabel}</span>
-      </div>
-
-      {hasFile && (
-        <p className="result-file-name">
-          선택된 이미지 : <span>{fileName}</span>
-        </p>
-      )}
-
-      {/* 우측 상단 툴바 (샘플/실제 보기용 버튼) */}
-      <div className="result-toolbar">
-        <button
-          type="button"
-          className="btn-outline"
-          onClick={toggleSample}
-          disabled={analysisStatus === "running"}
-        >
-          {toggleLabel}
-        </button>
+        <span className={`result-badge ${badgeClass}`}>{badgeLabel}</span>
+        <span className="result-file-name">{fileLabel}</span>
       </div>
 
       <div className="result-body">
-        {shouldShowResult ? (
-          /* 샘플 또는 실제 결과 화면 */
+        {/* 에러 */}
+        {analysisStatus === "error" && (
+          <div className="result-placeholder">
+            <p className="result-placeholder-text">분석 중 오류가 발생했습니다.</p>
+            {errorMessage && (
+              <p className="result-placeholder-text">{errorMessage}</p>
+            )}
+          </div>
+        )}
+
+        {/* 분석 전 */}
+        {!hasAnalysis && analysisStatus !== "error" && (
+          <div className="result-placeholder">
+            <p className="result-placeholder-text">아직 분석 결과가 없습니다.</p>
+            <ul className="result-placeholder-list">
+              <li>왼쪽에서 이미지를 선택하고 “분석하기” 버튼을 눌러 주세요.</li>
+              {useSample && <li>샘플 모드에서는 예시 결과를 확인할 수 있어요.</li>}
+            </ul>
+          </div>
+        )}
+
+        {/* 분석 결과(요약/팔레트) */}
+        {hasAnalysis && (
           <div className="result-sample">
-            {/* 요약 카드들 */}
+            {/* 1) 요약 정보 */}
             {summary && (
               <div className="result-summary-grid">
                 <div className="result-summary-item">
                   <div className="result-summary-label">총 브릭 수</div>
-                  <div className="result-summary-value">
-                    {summary.totalBricks} 개
-                  </div>
+                  <div className="result-summary-value">{summary.totalBricks}</div>
                 </div>
+
                 <div className="result-summary-item">
-                  <div className="result-summary-label">브릭 종류</div>
-                  <div className="result-summary-value">
-                    {summary.uniqueTypes} 타입
-                  </div>
+                  <div className="result-summary-label">브릭 종류 수</div>
+                  <div className="result-summary-value">{summary.uniqueTypes}</div>
                 </div>
+
                 <div className="result-summary-item">
-                  <div className="result-summary-label">
-                    난이도 / 예상 시간
-                  </div>
+                  <div className="result-summary-label">난이도 / 예상 시간</div>
                   <div className="result-summary-value">
                     {summary.difficulty} · {summary.estimatedTime}
                   </div>
@@ -158,92 +101,50 @@ function BrickGuidePanel({
               </div>
             )}
 
-            {/* 🔹 브릭 색상 팔레트 섹션 */}
-            <BrickPalettePanel />
+            {/* 2) 안내 */}
+            <div className="result-placeholder" style={{ marginTop: 12 }}>
+              <p className="result-placeholder-text">
+                단계별 조립 가이드는 아래 <strong>STEP 02</strong>에서 “조립 가이드 생성”을 누르면 표시됩니다.
+              </p>
+            </div>
 
-            {/* 색상/종류별 그룹 */}
-            {groups.length > 0 && (
-              <div>
-                <h3 className="result-section-title">브릭 구성</h3>
-                <div className="result-groups">
-                  {groups.map((group, idx) => (
-                    <div
-                      key={group.name ?? group.id ?? idx}
-                      className="result-group"
-                    >
+            {/* 3) 브릭 팔레트 */}
+            {palette.length > 0 && (
+              <section className="result-section">
+                <h3 className="result-section-title">사용 브릭 팔레트</h3>
+                <div>
+                  {palette.map((p) => (
+                    <div key={p.color} className="result-group">
                       <div className="result-group-name">
-                        {group.name ?? group.title ?? "그룹"}
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: 10,
+                            height: 10,
+                            borderRadius: "999px",
+                            marginRight: 6,
+                            backgroundColor: p.color,
+                            border: "1px solid #e5e7eb",
+                          }}
+                        />
+                        {p.name ?? p.color} · {p.count}개
                       </div>
-                      <ul className="result-group-list">
-                        {(group.items ?? []).map((item, i) => (
-                          <li key={`${item}-${i}`}>{item}</li>
-                        ))}
-                      </ul>
+
+                      {Array.isArray(p.types) && p.types.length > 0 && (
+                        <ul className="result-group-list">
+                          {p.types.map((t) => (
+                            <li key={t}>{t}</li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
-
-            {/* 단계별 조립 가이드 */}
-            {steps.length > 0 && (
-              <div>
-                <h3 className="result-section-title">단계별 조립 가이드</h3>
-                <div className="result-steps">
-                  {steps.map((s, idx) => (
-                    <div key={s.step ?? idx} className="result-step">
-                      <span className="result-step-num">
-                        STEP {s.step ?? idx + 1}
-                      </span>
-                      <div className="result-step-body">
-                        <div className="result-step-title">
-                          {s.title ?? "단계"}
-                        </div>
-                        {s.hint && (
-                          <div className="result-step-hint">{s.hint}</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 팁 영역 */}
-            {tips.length > 0 && (
-              <div className="result-tips">
-                <div className="result-section-title">조립 팁</div>
-                <ul>
-                  {tips.map((tip, idx) => (
-                    <li key={`${tip}-${idx}`}>{tip}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        ) : (
-          /* 분석 전(빈) 상태 화면 */
-          <div className="result-placeholder">
-            <p className="result-placeholder-text">
-              아직 분석이 진행되지 않았습니다.
-            </p>
-            <ul className="result-placeholder-list">
-              <li>
-                왼쪽에서 이미지를 선택하고 &quot;분석 실행&quot;을 눌러 주세요.
-              </li>
-              <li>
-                분석이 완료되면 필요한 브릭 수, 종류, 난이도 정보를 보여줄
-                예정입니다.
-              </li>
-              <li>
-                당장은 샘플 결과를 통해 레이아웃만 먼저 확인할 수 있습니다.
-              </li>
-            </ul>
           </div>
         )}
       </div>
     </section>
   );
 }
-
-export default BrickGuidePanel;
