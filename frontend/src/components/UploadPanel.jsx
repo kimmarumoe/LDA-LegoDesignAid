@@ -1,35 +1,26 @@
 // frontend/src/components/UploadPanel.jsx
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
 /**
  * 이미지 업로드 + 분석 버튼 + 샘플 토글을 담당하는 입력 패널
- *
- * @param {Object} props
- * @param {(file: File, previewUrl: string) => void} props.onImageSelect
- * @param {() => void} props.onAnalyze
- * @param {string | null} props.previewUrl
- * @param {"idle" | "running" | "done" | "error"} props.analysisStatus
- * @param {boolean} props.useSample
- * @param {(useSample: boolean) => void} props.onToggleSample
+ * - 파일명/선택 상태는 부모(Analyze.jsx)의 selectedFile을 단일 출처(SSOT)로 사용
  */
 export default function UploadPanel({
   onImageSelect,
   onAnalyze,
   previewUrl,
+  selectedFile,
   analysisStatus,
   useSample,
   onToggleSample,
 }) {
   const fileInputRef = useRef(null);
-  const [fileName, setFileName] = useState("");
 
-  // 파일 선택 시: File + 미리보기 URL을 부모로 전달
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const url = URL.createObjectURL(file);
-    setFileName(file.name);
     onImageSelect?.(file, url);
   };
 
@@ -51,10 +42,9 @@ export default function UploadPanel({
       <p className="panel-desc">
         레고로 만들고 싶은 그림·로고·캐릭터 이미지를 선택한 뒤,
         <br />
-        &quot;분석하기&quot; 버튼을 눌러 브릭 조립 가이드를 생성합니다.
+        “분석하기” 버튼을 눌러 브릭 분석을 진행합니다.
       </p>
 
-      {/* 파일 선택 영역 */}
       <div className="upload-control">
         <label className="upload-label">
           파일 선택
@@ -65,12 +55,12 @@ export default function UploadPanel({
             onChange={handleFileChange}
           />
         </label>
+
         <p className="upload-filename">
-          {fileName || "선택된 파일 없음"}
+          {selectedFile?.name || "선택된 파일 없음"}
         </p>
       </div>
 
-      {/* 미리보기 영역 */}
       <div className="upload-preview">
         {previewUrl ? (
           <img
@@ -85,13 +75,13 @@ export default function UploadPanel({
         )}
       </div>
 
-      {/* 샘플/실제 토글 + 분석 버튼 */}
       <div className="upload-actions">
         <label className="sample-toggle">
           <input
             type="checkbox"
             checked={useSample}
             onChange={handleToggleSample}
+            disabled={isRunning}
           />
           <span>샘플 데이터로만 보기</span>
         </label>
