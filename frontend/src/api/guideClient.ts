@@ -1,42 +1,41 @@
 // frontend/src/api/guideClient.ts
-
-import type {
-  Brick,
-  GuideRequest,
-  GuideResponse,
-} from "../types/legoGuide";
+import type { GuideResponse } from "../types/legoGuide";
 
 // .env.development 에서 설정한 API 서버 주소 사용
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:9000";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:9000").replace(
+  /\/+$/,
+  "",
+);
+
+type RequestOptions = {
+  signal?: AbortSignal;
+};
 
 /**
- * 레고 조립 가이드 생성 API 호출 함수
- * - 입력: 브릭 배열 + 선택 meta 정보
- * - 출력: GuideResponse (단계별 가이드 + 요약 + 통계)
+ * 이미지 파일로 가이드 분석 요청
+ * - 왜: 백엔드 실제 엔드포인트(/api/guide/analyze)는 multipart/form-data(image) 기반
+ * - 주의: FormData 사용 시 Content-Type을 직접 지정하지 않는다(브라우저가 boundary 포함해서 자동 설정)
  */
-export async function createGuide(
-  bricks: Brick[],
-  meta?: GuideRequest["meta"],
+export async function analyzeGuide(
+  imageFile: File,
+  options: RequestOptions = {},
 ): Promise<GuideResponse> {
-  // 타입을 GuideRequest로 명시해서, 필드 누락/오타를 컴파일 단계에서 잡도록 함
-  const payload: GuideRequest = { bricks, meta };
+  if (!imageFile) throw new Error("이미지 파일이 없습니다.");
 
-  const res = await fetch(`${API_BASE_URL}/api/guide`, {
+  const form = new FormData();
+  form.append("image", imageFile); // Swagger와 동일한 필드명
+
+  const res = await fetch(`${API_BASE_URL}/api/guide/analyze`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
+    body: form,
+    signal: options.signal,
   });
 
-  // HTTP 에러(400, 500 등) 처리
   if (!res.ok) {
+    // FastAPI는 보통 {"detail": "..."} 형태로 내려옴
     const text = await res.text().catch(() => "");
     throw new Error(`Guide API error (${res.status}): ${text}`);
   }
 
-  // 응답 JSON을 GuideResponse 타입으로 파싱
-  const data: GuideResponse = await res.json();
-  return data;
+  return (await res.json()) as GuideResponse;
 }
