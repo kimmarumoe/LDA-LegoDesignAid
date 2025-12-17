@@ -203,9 +203,6 @@
   color: #f9fafb;
   cursor: pointer;
   box-shadow: none;
-  align-self: flex-start;
-  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out,
-    background 0.12s ease-out, opacity 0.12s ease-out;
 }
 
 /* hover: 파일 선택 + 분석하기 모두 동일 효과 */
