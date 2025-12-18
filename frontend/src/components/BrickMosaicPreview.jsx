@@ -23,25 +23,24 @@ function pickGridSize(guide) {
 }
 
 function pickBricks(guide) {
-  // 흔한 후보들 순서대로 탐색
-  const bricks =
+
+  const direct =
     guide?.bricks ??
     guide?.mosaic?.bricks ??
     guide?.result?.bricks ??
-    guide?.meta?.bricks ??
-    [];
+    guide?.meta?.bricks;
 
-  return Array.isArray(bricks) ? bricks : [];
+  if (Array.isArray(direct) && direct.length > 0) return direct;
+
+  const fromGroups = Array.isArray(guide?.groups)
+    ? guide.groups.flatMap((g) => (Array.isArray(g?.bricks) ? g.bricks : []))
+    : [];
+
+  return fromGroups;
 }
 
 function pickColorHex(b) {
-  return (
-    b?.colorHex ??
-    b?.hex ??
-    b?.color ??
-    b?.fill ??
-    "#E5E7EB" // fallback
-  );
+  return b?.colorHex ?? b?.hex ?? b?.color ?? b?.fill ?? "#E5E7EB";
 }
 
 export default function BrickMosaicPreview({ guide }) {
@@ -95,12 +94,21 @@ export default function BrickMosaicPreview({ guide }) {
         <div
           className="mosaic-grid"
           style={{
+            display: "grid",
             gridTemplateColumns: `repeat(${w}, ${cell}px)`,
             gridTemplateRows: `repeat(${h}, ${cell}px)`,
           }}
         >
           {cells.map((c, i) => (
-            <div key={i} className="mosaic-cell" style={{ background: c }} />
+            <div
+              key={i}
+              className="mosaic-cell"
+              style={{
+                background: c,
+                width: `${cell}px`,
+                height: `${cell}px`,
+              }}
+            />
           ))}
         </div>
       )}

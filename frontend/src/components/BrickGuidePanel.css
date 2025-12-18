@@ -151,8 +151,12 @@
   border-radius: 12px;
   background: #fff;
   overflow: auto;
+  max-width: 100%;
 }
 
 .mosaic-cell {
-  border-radius: 3px;
+  width: var(--cell);
+  height: var(--cell);
+  border-radius: 2px;
 }
+
