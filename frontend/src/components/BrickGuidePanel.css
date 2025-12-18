@@ -115,3 +115,44 @@
   font-size: 0.75rem;
   color: #6b7280;
 }
+
+.mosaic-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.mosaic-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mosaic-meta {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.mosaic-zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.mosaic-grid {
+  display: grid;
+  gap: 2px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  overflow: auto;
+}
+
+.mosaic-cell {
+  border-radius: 3px;
+}
