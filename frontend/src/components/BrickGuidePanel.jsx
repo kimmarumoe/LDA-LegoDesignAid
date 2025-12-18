@@ -1,4 +1,5 @@
 // frontend/src/components/BrickGuidePanel.jsx
+import BrickMosaicPreview from "./BrickMosaicPreview.jsx";
 
 /**
  * 브릭 분석 결과 패널 (STEP 01 결과만 담당)
@@ -38,6 +39,12 @@ export default function BrickGuidePanel({
   const summary = guide?.summary ?? null;
   const palette = Array.isArray(guide?.palette) ? guide.palette : [];
 
+  const fileLabel_toggleSafe = selectedFile
+    ? selectedFile.name
+    : useSample
+    ? "선택된 파일 없음 · 샘플 모드에서 UI만 확인 중"
+    : "선택된 파일 없음";
+
   return (
     <section className="panel brick-guide-panel">
       <h2>2. 브릭 분석 결과 {useSample ? "(샘플)" : ""}</h2>
@@ -48,20 +55,14 @@ export default function BrickGuidePanel({
 
       <div className="result-header">
         <span className={`result-badge ${badgeClass}`}>{badgeLabel}</span>
-        <span className="result-file-name">
-          {selectedFile
-            ? selectedFile.name
-            : "선택된 파일 없음 · 샘플 모드에서 UI만 확인 중"}
-        </span>
+        <span className="result-file-name">{fileLabel_toggleSafe}</span>
       </div>
 
       <div className="result-body">
         {/* 에러 상태 */}
         {analysisStatus === "error" && (
           <div className="result-placeholder">
-            <p className="result-placeholder-text">
-              분석 중 오류가 발생했습니다.
-            </p>
+            <p className="result-placeholder-text">분석 중 오류가 발생했습니다.</p>
             {errorMessage && (
               <p className="result-placeholder-text">{errorMessage}</p>
             )}
@@ -71,18 +72,19 @@ export default function BrickGuidePanel({
         {/* 아직 가이드가 없는 상태 */}
         {!hasGuide && analysisStatus !== "error" && (
           <div className="result-placeholder">
-            <p className="result-placeholder-text">
-              아직 분석 결과가 없습니다.
-            </p>
+            <p className="result-placeholder-text">아직 분석 결과가 없습니다.</p>
             <p className="result-placeholder-sub">
               STEP 01에서 “분석하기”를 실행하면 요약/팔레트가 표시됩니다.
             </p>
           </div>
         )}
 
-        {/* 가이드가 있는 상태: 요약 + 팔레트만 표시 */}
+        {/* 가이드가 있는 상태: 모자이크 + 요약 + 팔레트 */}
         {hasGuide && analysisStatus !== "error" && (
           <>
+            {/* 0) 모자이크(브릭 배치) 미리보기 */}
+            <BrickMosaicPreview guide={guide} />
+
             {/* 1) 요약 */}
             {summary && (
               <section className="result-section">
@@ -94,12 +96,14 @@ export default function BrickGuidePanel({
                       {summary.totalBricks}
                     </div>
                   </div>
+
                   <div className="result-summary-item">
                     <div className="result-summary-label">브릭 종류 수</div>
                     <div className="result-summary-value">
                       {summary.uniqueTypes}
                     </div>
                   </div>
+
                   <div className="result-summary-item">
                     <div className="result-summary-label">난이도 / 예상 시간</div>
                     <div className="result-summary-value">
@@ -115,8 +119,8 @@ export default function BrickGuidePanel({
               <section className="result-section">
                 <h3 className="result-section-title">사용 브릭 팔레트</h3>
                 <div>
-                  {palette.map((p) => (
-                    <div key={p.color} className="result-group">
+                  {palette.map((p, idx) => (
+                    <div key={`${p.color}-${p.type}-${idx}`} className="result-group">
                       <div className="result-group-name">
                         <span
                           style={{
@@ -125,7 +129,7 @@ export default function BrickGuidePanel({
                             height: 10,
                             borderRadius: "999px",
                             marginRight: 6,
-                            background: p.colorHex,
+                            background: p.colorHex ?? "#E5E7EB",
                           }}
                         />
                         {p.color} · {p.count}개
