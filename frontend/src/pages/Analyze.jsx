@@ -25,7 +25,7 @@ export default function Analyze() {
   // 3) 샘플 모드
   const [useSample, setUseSample] = useState(true);
 
-  // ✅ STEP 02에서만 단계별 가이드를 보여주기 위한 상태
+  // STEP 02에서만 단계별 가이드를 보여주기 위한 상태
   const [showAssemblyGuide, setShowAssemblyGuide] = useState(false);
 
   /** 공통 초기화(상태 불일치 방지) */
@@ -40,12 +40,12 @@ export default function Analyze() {
   const handleImageSelect = (file, url) => {
     setSelectedFile(file);
     setPreviewUrl(url);
-    resetResult(); // ✅ 파일 바뀌면 결과/STEP02 표시 상태도 함께 초기화
+    resetResult(); // 파일 바뀌면 결과/STEP02 표시 상태도 함께 초기화
   };
 
   /** "분석하기" 버튼 클릭 */
   const handleAnalyze = async () => {
-    // ✅ 재분석 시 STEP02는 다시 숨김
+    // 재분석 시 STEP02는 다시 숨김
     setShowAssemblyGuide(false);
 
     // 1) 샘플 모드: 파일 없어도 샘플 결과 표시
@@ -112,6 +112,7 @@ export default function Analyze() {
         {/* 가운데 2컬럼 레이아웃 (UploadPanel + BrickGuidePanel) */}
         <section className="analyze-layout">
           <UploadPanel
+          selectedFile={selectedFile}
             onImageSelect={handleImageSelect}
             onAnalyze={handleAnalyze}
             previewUrl={previewUrl}
@@ -119,7 +120,7 @@ export default function Analyze() {
             useSample={useSample}
             onToggleSample={(next) => {
               setUseSample(next);
-              resetResult(); // ✅ 모드 변경 시 결과/STEP02 표시도 초기화
+              resetResult(); // 모드 변경 시 결과/STEP02 표시도 초기화
             }}
           />
 
@@ -128,11 +129,11 @@ export default function Analyze() {
             analysisStatus={analysisStatus}
             errorMessage={errorMessage}
             useSample={useSample}
-            selectedFile={selectedFile} // ✅ 파일명 불일치 해결 포인트
+            selectedFile={selectedFile} // 파일명 불일치 해결 포인트
           />
         </section>
 
-        {/* ✅ STEP 02: 버튼 클릭 후에만 단계별 조립 가이드 표시 */}
+        {/* STEP 02: 버튼 클릭 후에만 단계별 조립 가이드 표시 */}
         <section className="panel analyze-sample-guide">
           <p className="analyze-step-label">STEP 02 · 브릭 조립 가이드</p>
 
