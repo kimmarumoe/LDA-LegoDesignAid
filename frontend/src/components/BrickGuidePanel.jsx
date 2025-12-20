@@ -1,146 +1,199 @@
-// frontend/src/components/BrickGuidePanel.jsx
+import { useMemo } from "react";
 import BrickMosaicPreview from "./BrickMosaicPreview.jsx";
 
 /**
- * 브릭 분석 결과 패널 (STEP 01 결과만 담당)
- * - guide: GuideResponse | null
- * - analysisStatus: "idle" | "running" | "done" | "error"
- * - errorMessage: string
- * - useSample: boolean
- * - selectedFile: File | null
+ * BrickGuidePanel
+ * - 분석 결과(요약/팔레트/프리뷰) 표시
+ * - 조립 가이드(steps) 표시
+ * - “표시 UI”만 담당 (SRP)
  */
 export default function BrickGuidePanel({
-  guide,
   analysisStatus,
-  errorMessage,
-  useSample,
-  selectedFile,
+  analysisError,
+  analysisResult,
+  guideStatus,
+  guideError,
+  guideSteps,
+  onGenerateGuide,
 }) {
-  const hasGuide = Boolean(guide);
+  const isAnalyzeDone = analysisStatus === "done";
+  const isGuideRunning = guideStatus === "running";
 
-  const badgeLabel =
-    analysisStatus === "idle"
-      ? "분석 대기 중"
-      : analysisStatus === "running"
-      ? "분석 중..."
-      : analysisStatus === "done"
-      ? "분석 완료"
-      : "분석 실패";
+  const summary = analysisResult?.summary;
 
-  const badgeClass =
-    analysisStatus === "done"
-      ? "done"
-      : analysisStatus === "running"
-      ? "running"
-      : analysisStatus === "error"
-      ? "error"
-      : "idle";
+  // ✅ palette가 170개처럼 커질 수 있어서(셀 단위일 가능성) 집계해서 보여줌
+  const paletteSummary = useMemo(() => {
+    const raw = analysisResult?.palette;
+    if (!Array.isArray(raw) || raw.length === 0) return [];
 
-  const summary = guide?.summary ?? null;
-  const palette = Array.isArray(guide?.palette) ? guide.palette : [];
+    const map = new Map();
+    for (const p of raw) {
+      const hex = p?.hex ?? p?.color;
+      if (!hex) continue;
 
-  const fileLabel_toggleSafe = selectedFile
-    ? selectedFile.name
-    : useSample
-    ? "선택된 파일 없음 · 샘플 모드에서 UI만 확인 중"
-    : "선택된 파일 없음";
+      // count가 있으면 사용, 없으면 1로 집계(셀 단위 palette도 대응)
+      const inc = Number(p?.count ?? p?.qty ?? p?.amount);
+      const add = Number.isFinite(inc) ? inc : 1;
+
+      map.set(hex, (map.get(hex) ?? 0) + add);
+    }
+
+    return [...map.entries()]
+      .map(([hex, count]) => ({ hex, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [analysisResult]);
+
+  const isPaletteEmpty = paletteSummary.length === 0;
 
   return (
-    <section className="panel brick-guide-panel">
-      <h2>2. 브릭 분석 결과 {useSample ? "(샘플)" : ""}</h2>
-
+    <section className="panel guide-panel">
+      <h2>2. 브릭 분석 & 조립 가이드</h2>
       <p className="panel-desc">
-        이미지를 업로드한 뒤, 왼쪽의 <strong>“분석하기”</strong> 버튼을 눌러주세요.
+        STEP 01에서 요약/팔레트를 확인하고, STEP 02에서 조립 순서를 생성하세요.
       </p>
 
-      <div className="result-header">
-        <span className={`result-badge ${badgeClass}`}>{badgeLabel}</span>
-        <span className="result-file-name">{fileLabel_toggleSafe}</span>
-      </div>
+      {/* ===== STEP 01 결과 영역 ===== */}
+      <div style={{ marginTop: 12 }}>
+        <h3 style={{ margin: "8px 0" }}>STEP 01. 분석 결과</h3>
 
-      <div className="result-body">
-        {/* 에러 상태 */}
-        {analysisStatus === "error" && (
-          <div className="result-placeholder">
-            <p className="result-placeholder-text">분석 중 오류가 발생했습니다.</p>
-            {errorMessage && (
-              <p className="result-placeholder-text">{errorMessage}</p>
-            )}
-          </div>
+        {analysisStatus === "running" && <p>분석중...</p>}
+
+        {analysisStatus === "error" && analysisError && (
+          <div className="error-box">{analysisError}</div>
         )}
 
-        {/* 아직 가이드가 없는 상태 */}
-        {!hasGuide && analysisStatus !== "error" && (
-          <div className="result-placeholder">
-            <p className="result-placeholder-text">아직 분석 결과가 없습니다.</p>
-            <p className="result-placeholder-sub">
-              STEP 01에서 “분석하기”를 실행하면 요약/팔레트가 표시됩니다.
-            </p>
-          </div>
-        )}
+        {isAnalyzeDone && analysisResult && (
+          <div style={{ display: "grid", gap: 12 }}>
+            {/* ✅ 모자이크 프리뷰 (STEP01에 포함) */}
+            <BrickMosaicPreview guide={analysisResult} />
 
-        {/* 가이드가 있는 상태: 모자이크 + 요약 + 팔레트 */}
-        {hasGuide && analysisStatus !== "error" && (
-          <>
-            {/* 0) 모자이크(브릭 배치) 미리보기 */}
-            <BrickMosaicPreview guide={guide} />
-
-            {/* 1) 요약 */}
+            {/* 요약 */}
             {summary && (
-              <section className="result-section">
-                <h3 className="result-section-title">요약</h3>
-                <div className="result-summary-grid">
-                  <div className="result-summary-item">
-                    <div className="result-summary-label">총 브릭 수</div>
-                    <div className="result-summary-value">
-                      {summary.totalBricks}
-                    </div>
-                  </div>
-
-                  <div className="result-summary-item">
-                    <div className="result-summary-label">브릭 종류 수</div>
-                    <div className="result-summary-value">
-                      {summary.uniqueTypes}
-                    </div>
-                  </div>
-
-                  <div className="result-summary-item">
-                    <div className="result-summary-label">난이도 / 예상 시간</div>
-                    <div className="result-summary-value">
-                      {summary.difficulty} · {summary.estimatedTime}
-                    </div>
-                  </div>
-                </div>
-              </section>
+              <div className="card" style={{ padding: 12, borderRadius: 12 }}>
+                <strong>요약</strong>
+                <ul style={{ marginTop: 8 }}>
+                  {"totalBricks" in summary && <li>총 브릭 수: {summary.totalBricks}</li>}
+                  {"uniqueTypes" in summary && <li>브릭 종류: {summary.uniqueTypes}</li>}
+                  {"difficulty" in summary && <li>난이도: {summary.difficulty}</li>}
+                  {"estimatedTime" in summary && <li>예상 시간: {summary.estimatedTime}</li>}
+                </ul>
+              </div>
             )}
 
-            {/* 2) 브릭 팔레트 */}
-            {palette.length > 0 && (
-              <section className="result-section">
-                <h3 className="result-section-title">사용 브릭 팔레트</h3>
-                <div>
-                  {palette.map((p, idx) => (
-                    <div key={`${p.color}-${p.type}-${idx}`} className="result-group">
-                      <div className="result-group-name">
+            {/* 팔레트 */}
+            <div className="card" style={{ padding: 12, borderRadius: 12 }}>
+              <strong>팔레트</strong>
+
+              {isPaletteEmpty ? (
+                <p style={{ marginTop: 8, opacity: 0.8 }}>팔레트 데이터가 없어요.</p>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+                    gap: 10,
+                    marginTop: 10,
+                  }}
+                >
+                  {paletteSummary.slice(0, 24).map((p, idx) => {
+                    const color = p.hex ?? "#999999";
+                    const count = p.count ?? "-";
+
+                    return (
+                      <div
+                        key={`${color}-${idx}`}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: 10,
+                          borderRadius: 12,
+                          background: "rgba(255,255,255,0.04)",
+                        }}
+                      >
                         <span
                           style={{
-                            display: "inline-block",
-                            width: 10,
-                            height: 10,
-                            borderRadius: "999px",
-                            marginRight: 6,
-                            background: p.colorHex ?? "#E5E7EB",
+                            width: 18,
+                            height: 18,
+                            borderRadius: 6,
+                            background: color,
+                            border: "1px solid rgba(255,255,255,0.15)",
                           }}
                         />
-                        {p.color} · {p.count}개
+                        <div style={{ lineHeight: 1.2 }}>
+                          <div style={{ fontSize: 12, opacity: 0.9 }}>{color}</div>
+                          <div style={{ fontSize: 12, opacity: 0.75 }}>개수: {count}</div>
+                        </div>
                       </div>
-                      <div className="result-group-items">{p.type}</div>
+                    );
+                  })}
+
+                  {/* 팔레트가 많을 때 안내 */}
+                  {paletteSummary.length > 24 && (
+                    <div style={{ fontSize: 12, opacity: 0.7, padding: 10 }}>
+                      +{paletteSummary.length - 24}개 더 있음
                     </div>
-                  ))}
+                  )}
                 </div>
-              </section>
-            )}
-          </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ===== STEP 02 액션 + 결과 ===== */}
+      <div style={{ marginTop: 18 }}>
+        <h3 style={{ margin: "8px 0" }}>STEP 02. 조립 가이드 생성</h3>
+
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <button
+  type="button"
+  className="btn-primary"
+  onClick={onGenerateGuide}
+  disabled={!isAnalyzeDone || isGuideRunning}
+>
+  {isGuideRunning ? "생성중..." : "조립 가이드 생성"}
+</button>
+
+          {!isAnalyzeDone && (
+            <span style={{ fontSize: 12, opacity: 0.8 }}>먼저 분석을 완료해주세요.</span>
+          )}
+        </div>
+
+        {guideStatus === "error" && guideError && (
+          <div className="error-box" style={{ marginTop: 12 }}>
+            {guideError}
+          </div>
+        )}
+
+        {guideStatus === "done" && guideSteps.length > 0 && (
+          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+            {guideSteps.map((step, idx) => {
+              const title = step?.title ?? `STEP ${idx + 1}`;
+              const desc = step?.description ?? step?.desc ?? "";
+              const bricks = step?.bricks ?? step?.bricksUsed ?? [];
+
+              return (
+                <div key={idx} className="card" style={{ padding: 12, borderRadius: 12 }}>
+                  <strong>{title}</strong>
+                  {desc && <p style={{ marginTop: 8, opacity: 0.9 }}>{desc}</p>}
+
+                  {Array.isArray(bricks) && bricks.length > 0 && (
+                    <details style={{ marginTop: 10 }}>
+                      <summary>사용 브릭 보기 ({bricks.length})</summary>
+                      <ul style={{ marginTop: 8 }}>
+                        {bricks.map((b, bIdx) => (
+                          <li key={bIdx} style={{ fontSize: 12, opacity: 0.85 }}>
+                            {typeof b === "string" ? b : JSON.stringify(b)}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </section>

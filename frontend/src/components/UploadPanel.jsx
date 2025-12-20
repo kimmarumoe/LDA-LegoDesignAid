@@ -1,104 +1,115 @@
-// frontend/src/components/UploadPanel.jsx
 import { useRef } from "react";
 
 /**
- * 이미지 업로드 + 분석 버튼 + 샘플 토글을 담당하는 입력 패널
- * - 파일명/선택 상태는 부모(Analyze.jsx)의 selectedFile을 단일 출처(SSOT)로 사용
+ * UploadPanel
+ * - 파일 선택 / 샘플 토글 / 분석 실행 버튼 UI만 담당 (SRP)
+ * - 실제 상태/흐름은 Analyze.jsx가 담당
  */
 export default function UploadPanel({
-  onImageSelect,
-  onAnalyze,
   previewUrl,
-  selectedFile,
-  analysisStatus,
+  hasFile,
+  fileName,
   useSample,
   onToggleSample,
+  analysisStatus,
+  analysisError,
+  onImageSelect,
+  onAnalyze,
 }) {
-  const fileInputRef = useRef(null);
+  // ObjectURL 누수 방지용 (새 파일 선택 시 이전 URL revoke)
+  const lastObjectUrlRef = useRef(null);
 
-  const handleFileChange = (event) => {
-    const file = event.target.files?.[0];
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
+    // 간단한 타입 검증 (필요 시 더 강화 가능)
+    if (!file.type.startsWith("image/")) {
+      alert("이미지 파일만 업로드할 수 있어요.");
+      return;
+    }
+
+    // 이전 URL 정리
+    if (lastObjectUrlRef.current) {
+      URL.revokeObjectURL(lastObjectUrlRef.current);
+    }
+
     const url = URL.createObjectURL(file);
-    onImageSelect?.(file, url);
+    lastObjectUrlRef.current = url;
+
+    onImageSelect(file, url);
   };
 
   const isRunning = analysisStatus === "running";
-  const isAnalyzable = !isRunning && (Boolean(previewUrl) || useSample);
-
-  const handleClickAnalyze = () => {
-    if (!isAnalyzable) return;
-    onAnalyze?.();
-  };
-
-  const handleToggleSample = (event) => {
-    onToggleSample?.(event.target.checked);
-  };
+  const canAnalyze = useSample || hasFile;
 
   return (
     <section className="panel upload-panel">
-      <h2 className="panel-title">1. 이미지 / 디자인 업로드</h2>
+      <h2>1. 이미지/디자인 업로드</h2>
       <p className="panel-desc">
-        레고로 만들고 싶은 그림·로고·캐릭터 이미지를 선택한 뒤,
-        <br />
-        “분석하기” 버튼을 눌러 브릭 분석을 진행합니다.
+        레고로 만들고 싶은 그림/로고/캐릭터 이미지를 선택하세요.
       </p>
 
       <div className="upload-control">
-        <label className="upload-label">
-          파일 선택
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-          />
-        </label>
-
-        <p className="upload-filename">
-          {selectedFile?.name || "선택된 파일 없음"}
-        </p>
-      </div>
-
-      <div className="upload-preview">
-        {previewUrl ? (
-          <img
-            src={previewUrl}
-            alt="선택한 이미지 미리보기"
-            className="upload-preview-image"
-          />
-        ) : (
-          <p className="preview-placeholder">
-            이미지를 선택하면 여기에서 미리보기를 확인할 수 있어요.
-          </p>
-        )}
-      </div>
-
-      <div className="upload-actions">
-        <label className="sample-toggle">
+        <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <input
             type="checkbox"
             checked={useSample}
-            onChange={handleToggleSample}
+            onChange={(e) => onToggleSample(e.target.checked)}
             disabled={isRunning}
           />
-          <span>샘플 데이터로만 보기</span>
+          샘플 모드
         </label>
 
-        <button
-          type="button"
-          onClick={handleClickAnalyze}
-          disabled={!isAnalyzable}
-          className="btn-primary"
-        >
-          {isRunning ? "분석 중..." : "분석하기"}
-        </button>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <label className="upload-label">
+            파일 선택
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              disabled={isRunning}
+            />
+          </label>
 
-        <p className="upload-actions-hint">
-          이미지를 업로드하거나 샘플 데이터로 브릭 분석을 테스트해볼 수 있어요.
-        </p>
+          {/* 파일명 표시(선택 사항): CSS에 upload-filename이 있음 */}
+           <span className="upload-filename" style={{ opacity: useSample ? 0.5 : 1 }}>
+            {hasFile ? fileName : "선택된 파일 없음"}
+    </span>
+
+          
+
+        </div>
+
+        {!useSample && !hasFile && (
+          <p className="upload-actions-hint" style={{ marginTop: 8 }}>
+            실데이터 모드에서는 이미지를 업로드해야 분석할 수 있어요.
+          </p>
+        )}
+
+        {analysisStatus === "error" && analysisError && (
+          <div className="error-box" style={{ marginTop: 12 }}>
+            {analysisError}
+          </div>
+        )}
       </div>
+
+      {previewUrl && (
+        <div className="upload-preview">
+          <img src={previewUrl} alt="preview" className="upload-preview-image" />
+        </div>
+      )}
+
+      <div className="upload-actions">
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={onAnalyze}
+              disabled={isRunning || !canAnalyze}
+            >
+              {isRunning ? "분석중..." : "분석하기"}
+            </button>
+          </div>
     </section>
   );
 }
