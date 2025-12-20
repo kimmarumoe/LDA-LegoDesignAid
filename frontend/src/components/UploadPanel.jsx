@@ -107,7 +107,7 @@ export default function UploadPanel({
               onClick={onAnalyze}
               disabled={isRunning || !canAnalyze}
             >
-              {isRunning ? "분석중..." : "분석하기"}
+              {isRunning ? "분석중..." : "분석 하기"}
             </button>
           </div>
     </section>
