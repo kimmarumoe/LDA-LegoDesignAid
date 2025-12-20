@@ -204,6 +204,9 @@
   color: #f9fafb;
   cursor: pointer;
   box-shadow: none;
+  line-height: 1;
+  min-height: 40px;
+  appearance: none;
 }
 
 /* hover: 파일 선택 + 분석하기 모두 동일 효과 */
