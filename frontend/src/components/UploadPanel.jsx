@@ -1,9 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 
 /**
  * UploadPanel
- * - 파일 선택 / 샘플 토글 / 분석 실행 버튼 UI만 담당 (SRP)
- * - 실제 상태/흐름은 Analyze.jsx가 담당
+ * - 파일 선택 / 샘플 토글 / 분석 실행 버튼 UI만 담당
+ * - 상태/흐름/옵션 값은 Analyze.jsx가 담당
  */
 export default function UploadPanel({
   previewUrl,
@@ -15,35 +15,18 @@ export default function UploadPanel({
   analysisError,
   onImageSelect,
   onAnalyze,
+  onReset, // ✅ Analyze.jsx에서 내려줄 reset 콜백
+
+  // 분석 옵션(Analyze.jsx에서 내려줌)
+  isOptionsOpen,
+  onToggleOptions,
+  gridSize,
+  colorLimit,
+  onChangeGridSize,
+  onChangeColorLimit,
 }) {
-  // ObjectURL 누수 방지용 (새 파일 선택/리셋 시 이전 URL revoke)
   const lastObjectUrlRef = useRef(null);
   const fileInputRef = useRef(null);
-
-  // ✅ previewUrl이 null로 내려오면(부모에서 리셋), 마지막 objectURL도 정리
-  useEffect(() => {
-    if (!previewUrl && lastObjectUrlRef.current) {
-      URL.revokeObjectURL(lastObjectUrlRef.current);
-      lastObjectUrlRef.current = null;
-    }
-  }, [previewUrl]);
-
-  // ✅ 언마운트 시 마지막 objectURL 정리
-  useEffect(() => {
-    return () => {
-      if (lastObjectUrlRef.current) {
-        URL.revokeObjectURL(lastObjectUrlRef.current);
-        lastObjectUrlRef.current = null;
-      }
-    };
-  }, []);
-
-  // ✅ 샘플 모드 ON이면 파일 입력값도 비워서(재선택 onChange 보장) UX 혼선 방지
-  useEffect(() => {
-    if (useSample && fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  }, [useSample]);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -54,12 +37,9 @@ export default function UploadPanel({
       return;
     }
 
-    // ✅ 파일을 고르는 순간 “내 이미지 분석” 의도라고 보고 샘플 모드 자동 해제
-    if (useSample) onToggleSample(false);
-
-    // 이전 URL 정리
     if (lastObjectUrlRef.current) {
       URL.revokeObjectURL(lastObjectUrlRef.current);
+      lastObjectUrlRef.current = null;
     }
 
     const url = URL.createObjectURL(file);
@@ -68,28 +48,42 @@ export default function UploadPanel({
     onImageSelect(file, url);
   };
 
+  const handleResetClick = () => {
+    // UploadPanel 내부에서 만든 objectURL 정리 (메모리 누수 방지)
+    if (lastObjectUrlRef.current) {
+      URL.revokeObjectURL(lastObjectUrlRef.current);
+      lastObjectUrlRef.current = null;
+    }
+
+    // 파일 input 값도 비우기 (같은 파일 재선택 이슈 방지)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    if (typeof onReset === "function") onReset();
+  };
+
   const isRunning = analysisStatus === "running";
   const canAnalyze = useSample || hasFile;
+  const optionSummary = `${gridSize} · ${colorLimit}색`;
 
   return (
     <section className="panel upload-panel">
       <h2>1. 이미지/디자인 업로드</h2>
-      <p className="panel-desc">
-        레고로 만들고 싶은 그림/로고/캐릭터 이미지를 선택하세요.
-      </p>
+      <p className="panel-desc">레고로 만들고 싶은 이미지를 선택하세요.</p>
 
       <div className="upload-control">
-        <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <label className="check-row">
           <input
             type="checkbox"
             checked={useSample}
             onChange={(e) => onToggleSample(e.target.checked)}
             disabled={isRunning}
           />
-          샘플 모드
+          <span>샘플 모드</span>
         </label>
 
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+        <div className="upload-row">
           <label className="upload-label">
             파일 선택
             <input
@@ -101,13 +95,67 @@ export default function UploadPanel({
             />
           </label>
 
-          <span className="upload-filename" style={{ opacity: useSample ? 0.5 : 1 }}>
+          <span className="upload-filename" style={{ opacity: useSample ? 0.55 : 1 }}>
             {hasFile ? fileName : "선택된 파일 없음"}
           </span>
         </div>
 
+        <div className="option-row">
+          <button
+            type="button"
+            className="option-toggle"
+            onClick={onToggleOptions}
+            disabled={isRunning}
+            aria-expanded={isOptionsOpen}
+          >
+            <span className="option-toggle__title">분석 옵션</span>
+            <span className="option-toggle__summary">{optionSummary}</span>
+            <span className="option-toggle__chev">{isOptionsOpen ? "▲" : "▼"}</span>
+          </button>
+
+          <span className="option-hint">
+            옵션 변경 시 결과가 초기화되고 재분석이 필요합니다.
+          </span>
+        </div>
+
+        {isOptionsOpen && (
+          <div className="option-panel">
+            <div className="option-field">
+              <label className="option-label">그리드 크기</label>
+              <select
+                className="form-select"
+                value={gridSize}
+                onChange={(e) => onChangeGridSize(e.target.value)}
+                disabled={isRunning}
+              >
+                <option value="16x16">16 x 16</option>
+                <option value="32x32">32 x 32</option>
+                <option value="48x48">48 x 48</option>
+              </select>
+              <div className="option-sub">커스텀 크기는 다음 업데이트에서 지원됩니다.</div>
+            </div>
+
+            <div className="option-field">
+              <label className="option-label">색상 개수 제한</label>
+              <select
+                className="form-select"
+                value={String(colorLimit)}
+                onChange={(e) => onChangeColorLimit(Number(e.target.value))}
+                disabled={isRunning}
+              >
+                <option value="8">8 색</option>
+                <option value="16">16 색</option>
+                <option value="24">24 색</option>
+              </select>
+              <div className="option-sub">
+                색상 제한이 낮을수록 단순화되고, 높을수록 원본에 가까워집니다.
+              </div>
+            </div>
+          </div>
+        )}
+
         {!useSample && !hasFile && (
-          <p className="upload-actions-hint" style={{ marginTop: 8 }}>
+          <p className="upload-actions-hint">
             실데이터 모드에서는 이미지를 업로드해야 분석할 수 있어요.
           </p>
         )}
@@ -119,7 +167,6 @@ export default function UploadPanel({
         )}
       </div>
 
-      {/* ✅ 원본 이미지는 UploadPanel에서만 */}
       {previewUrl && (
         <div className="upload-preview">
           <img src={previewUrl} alt="preview" className="upload-preview-image" />
@@ -134,6 +181,16 @@ export default function UploadPanel({
           disabled={isRunning || !canAnalyze}
         >
           {isRunning ? "분석중..." : "분석하기"}
+        </button>
+
+        <button
+          type="button"
+          className="btn-reset"
+          onClick={handleResetClick}
+          disabled={isRunning}
+          aria-label="분석 상태 초기화"
+        >
+          초기화
         </button>
       </div>
     </section>

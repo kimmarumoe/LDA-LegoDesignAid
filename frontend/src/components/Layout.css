@@ -1,22 +1,46 @@
 /* src/components/Layout.css */
-/* 앱 공통 레이아웃 + 상단 네비게이션 */
 
 .app-root {
   min-height: 100vh;
-  background: #f5f7fb;
   display: flex;
   flex-direction: column;
+
+  color-scheme: light dark;
+
+  --app-bg: #f5f7fb;
+  --app-surface: rgba(255, 255, 255, 0.86);
+  --app-border: rgba(0, 0, 0, 0.10);
+  --app-text: #111827;
+  --app-muted: #4b5563;
+
+  --app-shadow: 0 10px 22px rgba(15, 23, 42, 0.10);
+
+  background: var(--app-bg);
 }
 
-/* ===== 상단 네비게이션 바 ===== */
+@media (prefers-color-scheme: dark) {
+  .app-root {
+    --app-bg: #0e1116;
+    --app-surface: rgba(20, 26, 34, 0.88);
+    --app-border: rgba(255, 255, 255, 0.10);
+    --app-text: rgba(255, 255, 255, 0.92);
+    --app-muted: rgba(255, 255, 255, 0.64);
 
+    --app-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* ===== Header ===== */
 .app-header {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(245, 247, 251, 0.96);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid #e5e7eb;
+
+  background: var(--app-surface);
+  backdrop-filter: blur(12px);
+
+  border-bottom: 1px solid var(--app-border);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 }
 
 .app-header-inner {
@@ -30,17 +54,14 @@
   gap: 16px;
 }
 
-/* 왼쪽 LDA 로고 텍스트 */
-
 .app-logo {
-  font-weight: 700;
+  font-weight: 900;
   font-size: 18px;
   letter-spacing: 0.06em;
-  color: #111827;
+  color: var(--app-text);
 }
 
-/* 오른쪽 메뉴 */
-
+/* Nav */
 .app-nav {
   display: flex;
   flex-wrap: wrap;
@@ -52,35 +73,36 @@
   font-size: 14px;
   padding: 6px 12px;
   border-radius: 999px;
-  color: #4b5563;
+  color: var(--app-muted);
   text-decoration: none;
   border: 1px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
 }
 
 .app-nav-link:hover {
-  background: #e5e7eb;
+  background: rgba(15, 118, 110, 0.10);
+  border-color: rgba(15, 118, 110, 0.18);
+  transform: translateY(-1px);
 }
 
 .app-nav-link-active {
   background: #0f766e;
   color: #f9fafb;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
-/* 모바일에서 살짝 내려서 정렬 */
-
+/* Mobile */
 @media (max-width: 640px) {
   .app-header-inner {
     flex-direction: column;
     align-items: flex-start;
   }
-
   .app-nav {
     justify-content: flex-start;
   }
 }
 
-/* ===== 메인 컨테이너 ===== */
-
+/* Main */
 .app-main {
   flex: 1;
   max-width: 960px;
@@ -89,26 +111,25 @@
   padding: 0px 24px 40px;
 }
 
-/* ===== 공통 섹션 타이포그래피 ===== */
-
+/* Typography */
 .section-eyebrow {
   font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #9ca3af;
+  color: rgba(148, 163, 184, 0.95);
 }
 
 .section-title {
   margin: 0;
   font-size: 22px;
-  font-weight: 700;
-  color: #111827;
+  font-weight: 800;
+  color: var(--app-text);
 }
 
 .section-desc {
   margin: 2px 0 0;
   font-size: 14px;
   line-height: 1.7;
-  color: #4b5563;
+  color: var(--app-muted);
   max-width: 600px;
 }

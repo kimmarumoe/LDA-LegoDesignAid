@@ -26,6 +26,17 @@ export default function BrickGuidePanel({
 
   const summary = analysisResult?.summary;
 
+  // 핵심: summaryView 선언 (없어서 에러 났던 부분)
+  const summaryView = useMemo(() => {
+    const s = summary ?? {};
+    return {
+      totalBricks: s.totalBricks ?? s.total ?? s.brickCount ?? s.total_bricks ?? null,
+      uniqueTypes: s.uniqueTypes ?? s.brickTypes ?? s.unique_types ?? s.types ?? null,
+      difficulty: s.difficulty ?? s.level ?? s.diff ?? null,
+      estimatedTime: s.estimatedTime ?? s.time ?? s.eta ?? null,
+    };
+  }, [summary]);
+
   useEffect(() => {
     if (analysisStatus !== "done") {
       setShowPreview(false);
@@ -81,125 +92,150 @@ export default function BrickGuidePanel({
           <div className="error-box">{analysisError}</div>
         )}
 
-     {isAnalyzeDone && analysisResult && (
-  <div style={{ display: "grid", gap: 12 }}>
-    {/* 1) 요약 */}
-    {summary && (
-      <div className="card" style={{ padding: 12, borderRadius: 12 }}>
-        <strong>요약</strong>
-        <ul style={{ marginTop: 8 }}>
-          {"totalBricks" in summary && <li>총 브릭 수: {summary.totalBricks}</li>}
-          {"uniqueTypes" in summary && <li>브릭 종류: {summary.uniqueTypes}</li>}
-          {"difficulty" in summary && <li>난이도: {summary.difficulty}</li>}
-          {"estimatedTime" in summary && <li>예상 시간: {summary.estimatedTime}</li>}
-        </ul>
-      </div>
-    )}
+        {isAnalyzeDone && analysisResult && (
+          <div style={{ display: "grid", gap: 12 }}>
+            {/* 1) 요약 */}
+            {summary && (
+              <div className="card" style={{ padding: 12, borderRadius: 12 }}>
+                <strong>요약</strong>
 
-    {/* 2) 모자이크 미리보기(토글) */}
-    <div className="card" style={{ padding: 12, borderRadius: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-        <strong>모자이크 미리보기</strong>
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => setShowPreview((v) => !v)}
-          aria-expanded={showPreview}
-          style={{ padding: "6px 10px", fontSize: 12 }}
-        >
-          {showPreview ? "숨기기" : "보기"}
-        </button>
-      </div>
+                <div className="summary-cards" style={{ marginTop: 10 }}>
+                  {summaryView.totalBricks != null && (
+                    <div className="summary-card">
+                      <div className="summary-card-label">총 브릭 수</div>
+                      <div className="summary-card-value">{summaryView.totalBricks}</div>
+                    </div>
+                  )}
 
-      {!showPreview ? (
-        <p style={{ marginTop: 8, opacity: 0.8, fontSize: 12 }}>
-          미리보기는 이미지 크기에 따라 표시까지 시간이 걸릴 수 있어요. 필요할 때만 열어 확인해 주세요.
-        </p>
-      ) : (
-        <div style={{ marginTop: 10 }}>
-          <BrickMosaicPreview guide={analysisResult} />
-        </div>
-      )}
-    </div>
+                  {summaryView.uniqueTypes != null && (
+                    <div className="summary-card">
+                      <div className="summary-card-label">브릭 종류</div>
+                      <div className="summary-card-value">{summaryView.uniqueTypes}</div>
+                    </div>
+                  )}
 
-    {/* 3) 팔레트(전체보기 토글) */}
-    <div className="card" style={{ padding: 12, borderRadius: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-        <strong>팔레트</strong>
+                  {summaryView.difficulty != null && (
+                    <div className="summary-card">
+                      <div className="summary-card-label">난이도</div>
+                      <div className="summary-card-value">{summaryView.difficulty}</div>
+                    </div>
+                  )}
 
-        {paletteHiddenCount > 0 && (
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => setShowAllPalette((v) => !v)}
-            aria-expanded={showAllPalette}
-            style={{ padding: "6px 10px", fontSize: 12 }}
-          >
-            {showAllPalette ? "접기" : `전체 보기 (+${paletteHiddenCount})`}
-          </button>
-        )}
-      </div>
-
-      {isPaletteEmpty ? (
-        <p style={{ marginTop: 8, opacity: 0.8 }}>팔레트 데이터가 없어요.</p>
-      ) : (
-        <>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-              gap: 10,
-              marginTop: 10,
-              maxHeight: showAllPalette ? 340 : "none",
-              overflowY: showAllPalette ? "auto" : "visible",
-              paddingRight: showAllPalette ? 6 : 0,
-            }}
-          >
-            {paletteToRender.map((p, idx) => {
-              const color = p.hex ?? "#999999";
-              const count = p.count ?? "-";
-
-              return (
-                <div
-                  key={`${color}-${idx}`}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: 10,
-                    borderRadius: 12,
-                    background: "rgba(255,255,255,0.04)",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: 6,
-                      background: color,
-                      border: "1px solid rgba(255,255,255,0.15)",
-                    }}
-                  />
-                  <div style={{ lineHeight: 1.2 }}>
-                    <div style={{ fontSize: 12, opacity: 0.9 }}>{color}</div>
-                    <div style={{ fontSize: 12, opacity: 0.75 }}>개수: {count}</div>
-                  </div>
+                  {summaryView.estimatedTime != null && (
+                    <div className="summary-card">
+                      <div className="summary-card-label">예상 시간</div>
+                      <div className="summary-card-value">{summaryView.estimatedTime}</div>
+                    </div>
+                  )}
                 </div>
-              );
-            })}
+              </div>
+            )}
+
+            {/* 2) 모자이크 미리보기(토글) */}
+            <div className="card" style={{ padding: 12, borderRadius: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                <strong>모자이크 미리보기</strong>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => setShowPreview((v) => !v)}
+                  aria-expanded={showPreview}
+                  style={{ padding: "6px 10px", fontSize: 12 }}
+                >
+                  {showPreview ? "숨기기" : "보기"}
+                </button>
+              </div>
+
+              {!showPreview ? (
+                <p style={{ marginTop: 8, opacity: 0.8, fontSize: 12 }}>
+                  미리보기는 이미지 크기에 따라 표시까지 시간이 걸릴 수 있어요. 필요할 때만 열어 확인해 주세요.
+                </p>
+              ) : (
+                <div style={{ marginTop: 10 }}>
+                  <BrickMosaicPreview guide={analysisResult} />
+                </div>
+              )}
+            </div>
+
+            {/* 3) 팔레트(전체보기 토글) */}
+            <div className="card" style={{ padding: 12, borderRadius: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                <strong>팔레트</strong>
+
+                {paletteHiddenCount > 0 && (
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => setShowAllPalette((v) => !v)}
+                    aria-expanded={showAllPalette}
+                    style={{ padding: "6px 10px", fontSize: 12 }}
+                  >
+                    {showAllPalette ? "접기" : `전체 보기 (+${paletteHiddenCount})`}
+                  </button>
+                )}
+              </div>
+
+              {isPaletteEmpty ? (
+                <p style={{ marginTop: 8, opacity: 0.8 }}>팔레트 데이터가 없어요.</p>
+              ) : (
+                <>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+                      gap: 10,
+                      marginTop: 10,
+                      maxHeight: showAllPalette ? 340 : "none",
+                      overflowY: showAllPalette ? "auto" : "visible",
+                      paddingRight: showAllPalette ? 6 : 0,
+                    }}
+                  >
+                    {paletteToRender.map((p, idx) => {
+                      const color = p.hex ?? "#999999";
+                      const count = p.count ?? "-";
+
+                      return (
+                        <div
+                          key={`${color}-${idx}`}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            padding: 10,
+                            borderRadius: 12,
+                            // 라이트에서도 이상하지 않게(토큰 쓰는 게 베스트)
+                            background: "var(--lda-surface-2)",
+                            border: "1px solid var(--lda-border)",
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 18,
+                              height: 18,
+                              borderRadius: 6,
+                              background: color,
+                              border: "1px solid var(--lda-border)",
+                            }}
+                          />
+                          <div style={{ lineHeight: 1.2 }}>
+                            <div style={{ fontSize: 12, opacity: 0.9 }}>{color}</div>
+                            <div style={{ fontSize: 12, opacity: 0.75 }}>개수: {count}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {showAllPalette && (
+                    <p style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
+                      전체 색상은 스크롤로 확인할 수 있어요.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-
-          {showAllPalette && (
-            <p style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
-              전체 색상은 스크롤로 확인할 수 있어요.
-            </p>
-          )}
-        </>
-      )}
-    </div>
-  </div>
-)}
-
+        )}
       </div>
 
       <div style={{ marginTop: 18 }}>
