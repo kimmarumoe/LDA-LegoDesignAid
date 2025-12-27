@@ -19,3 +19,27 @@ body {
   background: #f3f4f6;
   color: #111827;
 }
+
+/* src/index.css (또는 App.css / Layout.css 중 전역으로 적용되는 곳) */
+:root {
+  color-scheme: light dark;
+
+  --app-bg: #f5f6f8;
+  --app-text: #111827;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --app-bg: #0e1116;
+    --app-text: rgba(255, 255, 255, 0.92);
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--app-bg);
+  color: var(--app-text);
+}
