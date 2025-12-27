@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * UploadPanel
@@ -16,18 +16,46 @@ export default function UploadPanel({
   onImageSelect,
   onAnalyze,
 }) {
-  // ObjectURL 누수 방지용 (새 파일 선택 시 이전 URL revoke)
+  // ObjectURL 누수 방지용 (새 파일 선택/리셋 시 이전 URL revoke)
   const lastObjectUrlRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // ✅ previewUrl이 null로 내려오면(부모에서 리셋), 마지막 objectURL도 정리
+  useEffect(() => {
+    if (!previewUrl && lastObjectUrlRef.current) {
+      URL.revokeObjectURL(lastObjectUrlRef.current);
+      lastObjectUrlRef.current = null;
+    }
+  }, [previewUrl]);
+
+  // ✅ 언마운트 시 마지막 objectURL 정리
+  useEffect(() => {
+    return () => {
+      if (lastObjectUrlRef.current) {
+        URL.revokeObjectURL(lastObjectUrlRef.current);
+        lastObjectUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  // ✅ 샘플 모드 ON이면 파일 입력값도 비워서(재선택 onChange 보장) UX 혼선 방지
+  useEffect(() => {
+    if (useSample && fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, [useSample]);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 간단한 타입 검증 (필요 시 더 강화 가능)
     if (!file.type.startsWith("image/")) {
       alert("이미지 파일만 업로드할 수 있어요.");
       return;
     }
+
+    // ✅ 파일을 고르는 순간 “내 이미지 분석” 의도라고 보고 샘플 모드 자동 해제
+    if (useSample) onToggleSample(false);
 
     // 이전 URL 정리
     if (lastObjectUrlRef.current) {
@@ -65,6 +93,7 @@ export default function UploadPanel({
           <label className="upload-label">
             파일 선택
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               onChange={handleFileChange}
@@ -72,13 +101,9 @@ export default function UploadPanel({
             />
           </label>
 
-          {/* 파일명 표시(선택 사항): CSS에 upload-filename이 있음 */}
-           <span className="upload-filename" style={{ opacity: useSample ? 0.5 : 1 }}>
+          <span className="upload-filename" style={{ opacity: useSample ? 0.5 : 1 }}>
             {hasFile ? fileName : "선택된 파일 없음"}
-    </span>
-
-          
-
+          </span>
         </div>
 
         {!useSample && !hasFile && (
@@ -94,6 +119,7 @@ export default function UploadPanel({
         )}
       </div>
 
+      {/* ✅ 원본 이미지는 UploadPanel에서만 */}
       {previewUrl && (
         <div className="upload-preview">
           <img src={previewUrl} alt="preview" className="upload-preview-image" />
@@ -101,15 +127,15 @@ export default function UploadPanel({
       )}
 
       <div className="upload-actions">
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={onAnalyze}
-              disabled={isRunning || !canAnalyze}
-            >
-              {isRunning ? "분석중..." : "분석 하기"}
-            </button>
-          </div>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={onAnalyze}
+          disabled={isRunning || !canAnalyze}
+        >
+          {isRunning ? "분석중..." : "분석하기"}
+        </button>
+      </div>
     </section>
   );
 }

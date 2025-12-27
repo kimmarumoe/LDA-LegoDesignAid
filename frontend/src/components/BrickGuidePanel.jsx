@@ -1,11 +1,11 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import BrickMosaicPreview from "./BrickMosaicPreview.jsx";
 
 /**
  * BrickGuidePanel
- * - 분석 결과(요약/팔레트/프리뷰) 표시
+ * - 분석 결과(요약/팔레트/프리뷰 선택 노출) 표시
  * - 조립 가이드(steps) 표시
- * - “표시 UI”만 담당 (SRP)
+ * - 표시 UI만 담당 (SRP)
  */
 export default function BrickGuidePanel({
   analysisStatus,
@@ -16,12 +16,23 @@ export default function BrickGuidePanel({
   guideSteps,
   onGenerateGuide,
 }) {
+  const [showPreview, setShowPreview] = useState(false);
+  const [showAllPalette, setShowAllPalette] = useState(false);
+
   const isAnalyzeDone = analysisStatus === "done";
   const isGuideRunning = guideStatus === "running";
+  const isGuideDone =
+    guideStatus === "done" && Array.isArray(guideSteps) && guideSteps.length > 0;
 
   const summary = analysisResult?.summary;
 
-  // ✅ palette가 170개처럼 커질 수 있어서(셀 단위일 가능성) 집계해서 보여줌
+  useEffect(() => {
+    if (analysisStatus !== "done") {
+      setShowPreview(false);
+      setShowAllPalette(false);
+    }
+  }, [analysisStatus]);
+
   const paletteSummary = useMemo(() => {
     const raw = analysisResult?.palette;
     if (!Array.isArray(raw) || raw.length === 0) return [];
@@ -31,7 +42,6 @@ export default function BrickGuidePanel({
       const hex = p?.hex ?? p?.color;
       if (!hex) continue;
 
-      // count가 있으면 사용, 없으면 1로 집계(셀 단위 palette도 대응)
       const inc = Number(p?.count ?? p?.qty ?? p?.amount);
       const add = Number.isFinite(inc) ? inc : 1;
 
@@ -45,6 +55,16 @@ export default function BrickGuidePanel({
 
   const isPaletteEmpty = paletteSummary.length === 0;
 
+  const paletteLimit = 24;
+  const paletteHiddenCount =
+    paletteSummary.length > paletteLimit ? paletteSummary.length - paletteLimit : 0;
+
+  const paletteToRender = showAllPalette
+    ? paletteSummary
+    : paletteSummary.slice(0, paletteLimit);
+
+  const canClickStep2 = isAnalyzeDone && !isGuideRunning && !isGuideDone;
+
   return (
     <section className="panel guide-panel">
       <h2>2. 브릭 분석 & 조립 가이드</h2>
@@ -52,7 +72,6 @@ export default function BrickGuidePanel({
         STEP 01에서 요약/팔레트를 확인하고, STEP 02에서 조립 순서를 생성하세요.
       </p>
 
-      {/* ===== STEP 01 결과 영역 ===== */}
       <div style={{ marginTop: 12 }}>
         <h3 style={{ margin: "8px 0" }}>STEP 01. 분석 결과</h3>
 
@@ -62,98 +81,140 @@ export default function BrickGuidePanel({
           <div className="error-box">{analysisError}</div>
         )}
 
-        {isAnalyzeDone && analysisResult && (
-          <div style={{ display: "grid", gap: 12 }}>
-            {/* ✅ 모자이크 프리뷰 (STEP01에 포함) */}
-            <BrickMosaicPreview guide={analysisResult} />
+     {isAnalyzeDone && analysisResult && (
+  <div style={{ display: "grid", gap: 12 }}>
+    {/* 1) 요약 */}
+    {summary && (
+      <div className="card" style={{ padding: 12, borderRadius: 12 }}>
+        <strong>요약</strong>
+        <ul style={{ marginTop: 8 }}>
+          {"totalBricks" in summary && <li>총 브릭 수: {summary.totalBricks}</li>}
+          {"uniqueTypes" in summary && <li>브릭 종류: {summary.uniqueTypes}</li>}
+          {"difficulty" in summary && <li>난이도: {summary.difficulty}</li>}
+          {"estimatedTime" in summary && <li>예상 시간: {summary.estimatedTime}</li>}
+        </ul>
+      </div>
+    )}
 
-            {/* 요약 */}
-            {summary && (
-              <div className="card" style={{ padding: 12, borderRadius: 12 }}>
-                <strong>요약</strong>
-                <ul style={{ marginTop: 8 }}>
-                  {"totalBricks" in summary && <li>총 브릭 수: {summary.totalBricks}</li>}
-                  {"uniqueTypes" in summary && <li>브릭 종류: {summary.uniqueTypes}</li>}
-                  {"difficulty" in summary && <li>난이도: {summary.difficulty}</li>}
-                  {"estimatedTime" in summary && <li>예상 시간: {summary.estimatedTime}</li>}
-                </ul>
-              </div>
-            )}
+    {/* 2) 모자이크 미리보기(토글) */}
+    <div className="card" style={{ padding: 12, borderRadius: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+        <strong>모자이크 미리보기</strong>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => setShowPreview((v) => !v)}
+          aria-expanded={showPreview}
+          style={{ padding: "6px 10px", fontSize: 12 }}
+        >
+          {showPreview ? "숨기기" : "보기"}
+        </button>
+      </div>
 
-            {/* 팔레트 */}
-            <div className="card" style={{ padding: 12, borderRadius: 12 }}>
-              <strong>팔레트</strong>
+      {!showPreview ? (
+        <p style={{ marginTop: 8, opacity: 0.8, fontSize: 12 }}>
+          미리보기는 이미지 크기에 따라 표시까지 시간이 걸릴 수 있어요. 필요할 때만 열어 확인해 주세요.
+        </p>
+      ) : (
+        <div style={{ marginTop: 10 }}>
+          <BrickMosaicPreview guide={analysisResult} />
+        </div>
+      )}
+    </div>
 
-              {isPaletteEmpty ? (
-                <p style={{ marginTop: 8, opacity: 0.8 }}>팔레트 데이터가 없어요.</p>
-              ) : (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-                    gap: 10,
-                    marginTop: 10,
-                  }}
-                >
-                  {paletteSummary.slice(0, 24).map((p, idx) => {
-                    const color = p.hex ?? "#999999";
-                    const count = p.count ?? "-";
+    {/* 3) 팔레트(전체보기 토글) */}
+    <div className="card" style={{ padding: 12, borderRadius: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+        <strong>팔레트</strong>
 
-                    return (
-                      <div
-                        key={`${color}-${idx}`}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          padding: 10,
-                          borderRadius: 12,
-                          background: "rgba(255,255,255,0.04)",
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: 18,
-                            height: 18,
-                            borderRadius: 6,
-                            background: color,
-                            border: "1px solid rgba(255,255,255,0.15)",
-                          }}
-                        />
-                        <div style={{ lineHeight: 1.2 }}>
-                          <div style={{ fontSize: 12, opacity: 0.9 }}>{color}</div>
-                          <div style={{ fontSize: 12, opacity: 0.75 }}>개수: {count}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* 팔레트가 많을 때 안내 */}
-                  {paletteSummary.length > 24 && (
-                    <div style={{ fontSize: 12, opacity: 0.7, padding: 10 }}>
-                      +{paletteSummary.length - 24}개 더 있음
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+        {paletteHiddenCount > 0 && (
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => setShowAllPalette((v) => !v)}
+            aria-expanded={showAllPalette}
+            style={{ padding: "6px 10px", fontSize: 12 }}
+          >
+            {showAllPalette ? "접기" : `전체 보기 (+${paletteHiddenCount})`}
+          </button>
         )}
       </div>
 
-      {/* ===== STEP 02 액션 + 결과 ===== */}
+      {isPaletteEmpty ? (
+        <p style={{ marginTop: 8, opacity: 0.8 }}>팔레트 데이터가 없어요.</p>
+      ) : (
+        <>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+              gap: 10,
+              marginTop: 10,
+              maxHeight: showAllPalette ? 340 : "none",
+              overflowY: showAllPalette ? "auto" : "visible",
+              paddingRight: showAllPalette ? 6 : 0,
+            }}
+          >
+            {paletteToRender.map((p, idx) => {
+              const color = p.hex ?? "#999999";
+              const count = p.count ?? "-";
+
+              return (
+                <div
+                  key={`${color}-${idx}`}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: 10,
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.04)",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: 6,
+                      background: color,
+                      border: "1px solid rgba(255,255,255,0.15)",
+                    }}
+                  />
+                  <div style={{ lineHeight: 1.2 }}>
+                    <div style={{ fontSize: 12, opacity: 0.9 }}>{color}</div>
+                    <div style={{ fontSize: 12, opacity: 0.75 }}>개수: {count}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {showAllPalette && (
+            <p style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
+              전체 색상은 스크롤로 확인할 수 있어요.
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  </div>
+)}
+
+      </div>
+
       <div style={{ marginTop: 18 }}>
         <h3 style={{ margin: "8px 0" }}>STEP 02. 조립 가이드 생성</h3>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <button
-  type="button"
-  className="btn-primary"
-  onClick={onGenerateGuide}
-  disabled={!isAnalyzeDone || isGuideRunning}
->
-  {isGuideRunning ? "생성중..." : "조립 가이드 생성"}
-</button>
+            type="button"
+            className="btn-primary"
+            onClick={onGenerateGuide}
+            disabled={!canClickStep2}
+            aria-disabled={!canClickStep2}
+          >
+            {isGuideRunning ? "생성중..." : isGuideDone ? "생성 완료" : "조립 가이드 생성"}
+          </button>
 
           {!isAnalyzeDone && (
             <span style={{ fontSize: 12, opacity: 0.8 }}>먼저 분석을 완료해주세요.</span>
@@ -166,7 +227,7 @@ export default function BrickGuidePanel({
           </div>
         )}
 
-        {guideStatus === "done" && guideSteps.length > 0 && (
+        {isGuideDone && (
           <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
             {guideSteps.map((step, idx) => {
               const title = step?.title ?? `STEP ${idx + 1}`;
