@@ -154,7 +154,10 @@ export default function Analyze() {
     setAnalysisStatus("running");
 
     try {
-      const optionsPayload = buildAnalyzeOptionsPayload(analysisOptions);
+      const optionsPayload = {
+  gridSize: analysisOptions.gridSize,
+  maxColors: analysisOptions.colorLimit ?? 16,
+};
 
       const payload = useSample
         ? SAMPLE_GUIDE
