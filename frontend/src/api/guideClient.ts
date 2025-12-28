@@ -18,10 +18,61 @@ export type NormalizedApiError = {
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:9000";
 
+type GridSizePreset = "16x16" | "32x32" | "48x48";
+type MaxColorsPreset = 8 | 16 | 24;
+
+export type AnalyzeOptions = {
+  gridSize: GridSizePreset;
+  maxColors: MaxColorsPreset;
+};
+
 function timeoutSignal(ms: number) {
   const controller = new AbortController();
   const id = window.setTimeout(() => controller.abort(), ms);
   return { signal: controller.signal, clear: () => window.clearTimeout(id) };
+}
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+/**
+ * UI/서버 양쪽 표기(gridSize vs grid_size 등)를 흡수해서
+ * 일관된 옵션 객체로 정규화한다.
+ */
+function normalizeAnalyzeOptions(options: unknown): Partial<AnalyzeOptions> | null {
+  if (!options) return null;
+  if (!isRecord(options)) return null;
+
+  // 후보 키들
+  const gridCandidate =
+    options.gridSize ?? options.grid_size ?? options.grid ?? options.gridSizePreset;
+  const colorsCandidate =
+    options.maxColors ?? options.max_colors ?? options.colors ?? options.colorLimit;
+
+  const normalized: Partial<AnalyzeOptions> = {};
+
+  if (typeof gridCandidate === "string") {
+    const g = gridCandidate.toLowerCase().replace(/\s+/g, "");
+    if (g === "16x16" || g === "32x32" || g === "48x48") {
+      normalized.gridSize = g as GridSizePreset;
+    }
+  }
+
+  if (typeof colorsCandidate === "number") {
+    if (colorsCandidate === 8 || colorsCandidate === 16 || colorsCandidate === 24) {
+      normalized.maxColors = colorsCandidate as MaxColorsPreset;
+    }
+  } else if (typeof colorsCandidate === "string") {
+    const n = Number(colorsCandidate);
+    if (n === 8 || n === 16 || n === 24) {
+      normalized.maxColors = n as MaxColorsPreset;
+    }
+  }
+
+  // 아무 것도 정규화 못 했으면 null 처리(불필요한 options 전송 방지)
+  if (!normalized.gridSize && !normalized.maxColors) return null;
+  return normalized;
 }
 
 async function requestJson<T>(
@@ -31,7 +82,6 @@ async function requestJson<T>(
   externalSignal?: AbortSignal
 ): Promise<T> {
   const { signal: tSignal, clear } = timeoutSignal(timeoutMs);
-
   const controller = new AbortController();
 
   // 외부 signal(Analyze.jsx AbortController) 연동
@@ -54,30 +104,26 @@ async function requestJson<T>(
       if (isJson) {
         try {
           const data = await res.json();
-          message =
-            data?.detail ||
-            data?.message ||
-            data?.error ||
-            message;
+          message = data?.detail || data?.message || data?.error || message;
         } catch {
           // ignore
         }
       }
-      const kind: NormalizedApiErrorKind =
-        res.status >= 500 ? "HTTP_5XX" : "HTTP_4XX";
+      const kind: NormalizedApiErrorKind = res.status >= 500 ? "HTTP_5XX" : "HTTP_4XX";
       throw { kind, message, status: res.status } satisfies NormalizedApiError;
     }
 
     if (!isJson) {
-      throw { kind: "INVALID_RESPONSE", message: "서버 응답이 JSON이 아닙니다." } satisfies NormalizedApiError;
+      throw {
+        kind: "INVALID_RESPONSE",
+        message: "서버 응답이 JSON이 아닙니다.",
+      } satisfies NormalizedApiError;
     }
 
     const data = (await res.json()) as T;
     return data;
   } catch (err: any) {
     if (err?.name === "AbortError") {
-      // 타임아웃/사용자취소 모두 AbortError라서 메시지로 구분
-      // 여기서는 간단히 ABORTED로 통일
       throw { kind: "ABORTED", message: "요청이 취소되었습니다." } satisfies NormalizedApiError;
     }
 
@@ -93,7 +139,10 @@ async function requestJson<T>(
 
 /**
  * 이미지 파일로 가이드 분석: /api/guide/analyze
- * options는 서버 스키마에 맞게 JSON 문자열로 전달
+ * H4 목적: 옵션을 서버로 전달하고, 서버 응답 meta에 저장된 값을 기반으로 표시할 수 있게 만든다.
+ *
+ * - options 필드(JSON): 기존/현 구조 호환
+ * - grid_size / max_colors 필드: 서버가 Form(...)으로 받는 방식 호환
  */
 export async function analyzeGuide(
   imageFile: File,
@@ -103,8 +152,19 @@ export async function analyzeGuide(
   const form = new FormData();
   form.append("image", imageFile);
 
-  if (options) {
-    form.append("options", JSON.stringify(options));
+  const normalized = normalizeAnalyzeOptions(options);
+
+  // 1) 기존 방식: options JSON 문자열 전달
+  if (normalized) {
+    form.append("options", JSON.stringify(normalized));
+  }
+
+  // 2) 호환 방식: 개별 Form 필드도 같이 전달
+  if (normalized?.gridSize) {
+    form.append("grid_size", normalized.gridSize);
+  }
+  if (typeof normalized?.maxColors === "number") {
+    form.append("max_colors", String(normalized.maxColors));
   }
 
   return requestJson<GuideResponse>(
