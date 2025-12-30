@@ -7,8 +7,31 @@ import "./Analyze.css";
 
 const DEFAULT_OPTIONS = {
   gridSize: "16x16", // "16x16" | "32x32" | "48x48"
-  colorLimit: 16, // 8 | 16 | 24
+  colorLimit: 16, // 0 | 8 | 16 | 24 (0 = 제한 없음)
 };
+
+const GRID_PRESETS = new Set(["16x16", "32x32", "48x48"]);
+const COLOR_LIMIT_PRESETS = new Set([0, 8, 16, 24]);
+
+function toSafeGridSize(input) {
+  const raw =
+    typeof input === "object" && input?.target ? input.target.value : input;
+
+  const v = String(raw ?? "")
+    .replace(/\s+/g, "")
+    .toLowerCase();
+
+  return GRID_PRESETS.has(v) ? v : "16x16";
+}
+
+function toSafeColorLimit(input) {
+  const raw =
+    typeof input === "object" && input?.target ? input.target.value : input;
+
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return 16;
+  return COLOR_LIMIT_PRESETS.has(n) ? n : 16;
+}
 
 function parseGridSize(gridSize) {
   const [w, h] = String(gridSize)
@@ -19,6 +42,7 @@ function parseGridSize(gridSize) {
   return { width, height };
 }
 
+// (현재는 미사용이지만 유지)
 function buildAnalyzeOptionsPayload(options) {
   const { width, height } = parseGridSize(options?.gridSize);
   return {
@@ -121,12 +145,14 @@ export default function Analyze() {
   };
 
   const handleChangeGridSize = (nextGridSize) => {
-    setAnalysisOptions((prev) => ({ ...prev, gridSize: nextGridSize }));
+    const safe = toSafeGridSize(nextGridSize);
+    setAnalysisOptions((prev) => ({ ...prev, gridSize: safe }));
     resetAllResults();
   };
 
   const handleChangeColorLimit = (nextLimit) => {
-    setAnalysisOptions((prev) => ({ ...prev, colorLimit: nextLimit }));
+    const safe = toSafeColorLimit(nextLimit);
+    setAnalysisOptions((prev) => ({ ...prev, colorLimit: safe }));
     resetAllResults();
   };
 
@@ -142,7 +168,6 @@ export default function Analyze() {
       return;
     }
 
-    // 기존 요청이 돌고 있으면 취소
     if (analyzeAbortRef.current) {
       analyzeAbortRef.current.abort();
       analyzeAbortRef.current = null;
@@ -154,10 +179,11 @@ export default function Analyze() {
     setAnalysisStatus("running");
 
     try {
+      // 0(제한 없음)도 그대로 전송
       const optionsPayload = {
-  gridSize: analysisOptions.gridSize,
-  maxColors: analysisOptions.colorLimit ?? 16,
-};
+        gridSize: analysisOptions.gridSize,
+        maxColors: analysisOptions.colorLimit,
+      };
 
       const payload = useSample
         ? SAMPLE_GUIDE
@@ -171,7 +197,6 @@ export default function Analyze() {
 
       setAnalysisStatus("done");
     } catch (err) {
-      // abort는 에러로 보여주지 않게 처리하고 싶으면 여기서 분기 가능
       console.error(err);
       setAnalysisStatus("error");
       setAnalysisError(normalizeClientError(err));
@@ -222,8 +247,6 @@ export default function Analyze() {
     setIsOptionsOpen(false);
     resetAllResults();
   };
-
-  const isRunning = analysisStatus === "running";
 
   return (
     <main className="analyze-page">
