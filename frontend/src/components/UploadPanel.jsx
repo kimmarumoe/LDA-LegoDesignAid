@@ -65,7 +65,9 @@ export default function UploadPanel({
 
   const isRunning = analysisStatus === "running";
   const canAnalyze = useSample || hasFile;
-  const optionSummary = `${gridSize} · ${colorLimit}색`;
+  const optionSummary = `${gridSize} · ${
+  colorLimit === 0 ? "제한 없음" : `${colorLimit}색`
+}`;
 
   return (
     <section className="panel upload-panel">
@@ -138,15 +140,17 @@ export default function UploadPanel({
             <div className="option-field">
               <label className="option-label">색상 개수 제한</label>
               <select
-                className="form-select"
-                value={String(colorLimit)}
-                onChange={(e) => onChangeColorLimit(Number(e.target.value))}
-                disabled={isRunning}
-              >
-                <option value="8">8 색</option>
-                <option value="16">16 색</option>
-                <option value="24">24 색</option>
-              </select>
+  className="form-select"
+  value={String(colorLimit)}
+  onChange={(e) => onChangeColorLimit(e.target.value)} // Number() 하지 말고 값만 전달
+  disabled={isRunning}
+>
+  <option value="0">제한 없음</option>
+  <option value="8">8 색</option>
+  <option value="16">16 색</option>
+  <option value="24">24 색</option>
+</select>
+
               <div className="option-sub">
                 색상 제한이 낮을수록 단순화되고, 높을수록 원본에 가까워집니다.
               </div>
