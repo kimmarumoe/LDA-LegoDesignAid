@@ -26,6 +26,9 @@ type MaxColorsPreset = 0 | 8 | 16 | 24;
 export type AnalyzeOptions = {
   gridSize: GridSizePreset;
   maxColors: MaxColorsPreset;
+
+  // ✅ 추가: 예) ["2x5"] / ["plate"] / ["2x5","1x1"] 등
+  brickTypes?: string[];
 };
 
 function timeoutSignal(ms: number) {
@@ -51,6 +54,22 @@ function acceptMaxColors(n: number): n is MaxColorsPreset {
   return n === 0 || n === 8 || n === 16 || n === 24;
 }
 
+function toStringArrayOrNull(v: unknown): string[] | null {
+  // "2x5" -> ["2x5"]
+  if (typeof v === "string") {
+    const s = v.trim();
+    return s ? [s] : null;
+  }
+
+  // ["2x5","plate"] -> 그대로 (빈 문자열 제거)
+  if (Array.isArray(v) && v.every((x) => typeof x === "string")) {
+    const cleaned = v.map((x) => x.trim()).filter(Boolean);
+    return cleaned.length ? cleaned : null;
+  }
+
+  return null;
+}
+
 /**
  * UI/서버 양쪽 표기(gridSize vs grid_size 등)를 흡수해서
  * 일관된 옵션 객체로 정규화한다.
@@ -58,8 +77,11 @@ function acceptMaxColors(n: number): n is MaxColorsPreset {
  * 중요한 포인트:
  * - maxColors: 0(제한 없음)도 유효 값으로 취급해야 한다.
  * - 0은 falsy이므로 "있음/없음" 체크를 typeof === "number"로 해야 한다.
+ * - brickTypes는 options JSON 안에 brick_types로 실어서 보낸다(스웨거와 동일)
  */
-function normalizeAnalyzeOptions(options: unknown): Partial<AnalyzeOptions> | null {
+function normalizeAnalyzeOptions(
+  options: unknown
+): Partial<AnalyzeOptions> | null {
   if (!options) return null;
   if (!isRecord(options)) return null;
 
@@ -75,6 +97,13 @@ function normalizeAnalyzeOptions(options: unknown): Partial<AnalyzeOptions> | nu
     options.colors ??
     options.colorLimit;
 
+  // ✅ brick types: camel/snake/단수 키까지 흡수
+  const brickTypesCandidate =
+    options.brickTypes ??
+    options.brick_types ??
+    options.brickType ??
+    options.brick_type;
+
   const normalized: Partial<AnalyzeOptions> = {};
 
   if (typeof gridCandidate === "string") {
@@ -89,10 +118,19 @@ function normalizeAnalyzeOptions(options: unknown): Partial<AnalyzeOptions> | nu
     normalized.maxColors = n;
   }
 
+  const bt = toStringArrayOrNull(brickTypesCandidate);
+  if (bt) {
+    normalized.brickTypes = bt;
+  }
+
   const hasGrid = typeof normalized.gridSize === "string";
   const hasMaxColors = typeof normalized.maxColors === "number"; // 0도 true
+  const hasBrickTypes =
+    Array.isArray(normalized.brickTypes) && normalized.brickTypes.length > 0;
 
-  if (!hasGrid && !hasMaxColors) return null;
+  // ✅ brickTypes만 있어도 options는 유효
+  if (!hasGrid && !hasMaxColors && !hasBrickTypes) return null;
+
   return normalized;
 }
 
@@ -107,7 +145,10 @@ async function requestJson<T>(
 
   if (externalSignal) {
     if (externalSignal.aborted) controller.abort();
-    else externalSignal.addEventListener("abort", () => controller.abort(), { once: true });
+    else
+      externalSignal.addEventListener("abort", () => controller.abort(), {
+        once: true,
+      });
   }
 
   tSignal.addEventListener("abort", () => controller.abort(), { once: true });
@@ -129,7 +170,8 @@ async function requestJson<T>(
         }
       }
 
-      const kind: NormalizedApiErrorKind = res.status >= 500 ? "HTTP_5XX" : "HTTP_4XX";
+      const kind: NormalizedApiErrorKind =
+        res.status >= 500 ? "HTTP_5XX" : "HTTP_4XX";
       throw { kind, message, status: res.status } satisfies NormalizedApiError;
     }
 
@@ -143,14 +185,20 @@ async function requestJson<T>(
     return (await res.json()) as T;
   } catch (err: any) {
     if (err?.name === "AbortError") {
-      throw { kind: "ABORTED", message: "요청이 취소되었습니다." } satisfies NormalizedApiError;
+      throw {
+        kind: "ABORTED",
+        message: "요청이 취소되었습니다.",
+      } satisfies NormalizedApiError;
     }
 
     if (err && typeof err === "object" && typeof err.kind === "string") {
       throw err;
     }
 
-    throw { kind: "NETWORK", message: "네트워크 오류가 발생했습니다." } satisfies NormalizedApiError;
+    throw {
+      kind: "NETWORK",
+      message: "네트워크 오류가 발생했습니다.",
+    } satisfies NormalizedApiError;
   } finally {
     clear();
   }
@@ -160,7 +208,7 @@ async function requestJson<T>(
  * 이미지 파일로 가이드 분석: /api/guide/analyze
  *
  * 전송 정책:
- * - options(JSON): gridSize, maxColors(0 포함) 전달
+ * - options(JSON): gridSize, maxColors(0 포함), brick_types 전달
  * - grid_size / max_colors: Form 필드 호환 전달 (0도 전달)
  */
 export async function analyzeGuide(
@@ -174,7 +222,27 @@ export async function analyzeGuide(
   const normalized = normalizeAnalyzeOptions(options);
 
   if (normalized) {
-    form.append("options", JSON.stringify(normalized));
+    // ✅ 스웨거와 같은 키로 구성해서 보냄
+    const optionsPayload: Record<string, unknown> = {};
+
+    if (normalized.gridSize) {
+      optionsPayload.gridSize = normalized.gridSize;
+    }
+
+    // 0(제한 없음)도 포함
+    if (typeof normalized.maxColors === "number") {
+      optionsPayload.maxColors = normalized.maxColors;
+      // (호환) 서버에서 colorLimit도 보는 경우 대비
+      optionsPayload.colorLimit = normalized.maxColors;
+    }
+
+    if (normalized.brickTypes && normalized.brickTypes.length > 0) {
+      optionsPayload.brick_types = normalized.brickTypes;
+      // (호환) camelCase도 같이(서버에서 brickTypes 볼 때 대비)
+      optionsPayload.brickTypes = normalized.brickTypes;
+    }
+
+    form.append("options", JSON.stringify(optionsPayload));
   }
 
   if (normalized?.gridSize) {

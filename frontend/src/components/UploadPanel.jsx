@@ -1,10 +1,6 @@
 import { useRef } from "react";
+import BrickSizeSelector from "./BrickSizeSelector.jsx";
 
-/**
- * UploadPanel
- * - 파일 선택 / 샘플 토글 / 분석 실행 버튼 UI만 담당
- * - 상태/흐름/옵션 값은 Analyze.jsx가 담당
- */
 export default function UploadPanel({
   previewUrl,
   hasFile,
@@ -15,15 +11,20 @@ export default function UploadPanel({
   analysisError,
   onImageSelect,
   onAnalyze,
-  onReset, // ✅ Analyze.jsx에서 내려줄 reset 콜백
+  onReset,
 
-  // 분석 옵션(Analyze.jsx에서 내려줌)
   isOptionsOpen,
   onToggleOptions,
   gridSize,
   colorLimit,
   onChangeGridSize,
   onChangeColorLimit,
+
+  // 브릭 옵션 추가
+  brickMode,
+  brickAllowed,
+  onChangeBrickMode,
+  onChangeBrickAllowed,
 }) {
   const lastObjectUrlRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -49,13 +50,11 @@ export default function UploadPanel({
   };
 
   const handleResetClick = () => {
-    // UploadPanel 내부에서 만든 objectURL 정리 (메모리 누수 방지)
     if (lastObjectUrlRef.current) {
       URL.revokeObjectURL(lastObjectUrlRef.current);
       lastObjectUrlRef.current = null;
     }
 
-    // 파일 input 값도 비우기 (같은 파일 재선택 이슈 방지)
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -65,9 +64,10 @@ export default function UploadPanel({
 
   const isRunning = analysisStatus === "running";
   const canAnalyze = useSample || hasFile;
+
   const optionSummary = `${gridSize} · ${
-  colorLimit === 0 ? "제한 없음" : `${colorLimit}색`
-}`;
+    Number(colorLimit) === 0 ? "제한 없음" : `${colorLimit}색`
+  }`;
 
   return (
     <section className="panel upload-panel">
@@ -97,7 +97,10 @@ export default function UploadPanel({
             />
           </label>
 
-          <span className="upload-filename" style={{ opacity: useSample ? 0.55 : 1 }}>
+          <span
+            className="upload-filename"
+            style={{ opacity: useSample ? 0.55 : 1 }}
+          >
             {hasFile ? fileName : "선택된 파일 없음"}
           </span>
         </div>
@@ -112,7 +115,9 @@ export default function UploadPanel({
           >
             <span className="option-toggle__title">분석 옵션</span>
             <span className="option-toggle__summary">{optionSummary}</span>
-            <span className="option-toggle__chev">{isOptionsOpen ? "▲" : "▼"}</span>
+            <span className="option-toggle__chev">
+              {isOptionsOpen ? "▲" : "▼"}
+            </span>
           </button>
 
           <span className="option-hint">
@@ -134,27 +139,36 @@ export default function UploadPanel({
                 <option value="32x32">32 x 32</option>
                 <option value="48x48">48 x 48</option>
               </select>
-              <div className="option-sub">커스텀 크기는 다음 업데이트에서 지원됩니다.</div>
+              <div className="option-sub">
+                커스텀 크기는 다음 업데이트에서 지원됩니다.
+              </div>
             </div>
 
             <div className="option-field">
               <label className="option-label">색상 개수 제한</label>
               <select
-  className="form-select"
-  value={String(colorLimit)}
-  onChange={(e) => onChangeColorLimit(e.target.value)} // Number() 하지 말고 값만 전달
-  disabled={isRunning}
->
-  <option value="0">제한 없음</option>
-  <option value="8">8 색</option>
-  <option value="16">16 색</option>
-  <option value="24">24 색</option>
-</select>
+                className="form-select"
+                value={String(colorLimit)}
+                onChange={(e) => onChangeColorLimit(e.target.value)}
+                disabled={isRunning}
+              >
+                <option value="0">제한 없음</option>
+                <option value="8">8 색</option>
+                <option value="16">16 색</option>
+                <option value="24">24 색</option>
+              </select>
 
               <div className="option-sub">
                 색상 제한이 낮을수록 단순화되고, 높을수록 원본에 가까워집니다.
               </div>
             </div>
+
+            <BrickSizeSelector
+              mode={brickMode}
+              allowed={brickAllowed}
+              onChangeMode={onChangeBrickMode}
+              onChangeAllowed={onChangeBrickAllowed}
+            />
           </div>
         )}
 

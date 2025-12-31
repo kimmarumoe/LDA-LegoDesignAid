@@ -13,6 +13,9 @@ const DEFAULT_OPTIONS = {
 const GRID_PRESETS = new Set(["16x16", "32x32", "48x48"]);
 const COLOR_LIMIT_PRESETS = new Set([0, 8, 16, 24]);
 
+// 자동 모드 프리셋(원하면 여기만 바꾸면 됨)
+const AUTO_BRICK_PRESET = ["1x1", "1x2", "1x3", "2x2", "2x3"];
+
 function toSafeGridSize(input) {
   const raw =
     typeof input === "object" && input?.target ? input.target.value : input;
@@ -55,6 +58,13 @@ function buildAnalyzeOptionsPayload(options) {
   };
 }
 
+// 브릭 타입 최소 보장(1x1 항상 포함)
+function ensureBrickTypes(list) {
+  const set = new Set(Array.isArray(list) ? list : []);
+  set.add("1x1");
+  return Array.from(set);
+}
+
 export default function Analyze() {
   const analyzeAbortRef = useRef(null);
 
@@ -65,6 +75,10 @@ export default function Analyze() {
 
   const [analysisOptions, setAnalysisOptions] = useState(DEFAULT_OPTIONS);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+
+  // 브릭 옵션(H-3)
+  const [brickMode, setBrickMode] = useState("manual"); // "auto" | "manual"
+  const [brickAllowed, setBrickAllowed] = useState(["1x1"]); // manual 모드에서 사용
 
   const [analysisResult, setAnalysisResult] = useState(null);
   const [analysisStatus, setAnalysisStatus] = useState("idle"); // idle | running | done | error
@@ -129,6 +143,11 @@ export default function Analyze() {
     return steps;
   }
 
+  function getBrickTypesToSend() {
+    if (brickMode === "auto") return ensureBrickTypes(AUTO_BRICK_PRESET);
+    return ensureBrickTypes(brickAllowed);
+  }
+
   const handleImageSelect = (file, url) => {
     setSelectedFile(file);
     setPreviewUrl(url);
@@ -156,6 +175,17 @@ export default function Analyze() {
     resetAllResults();
   };
 
+  // 브릭 옵션 변경 핸들러(H-3)
+  const handleChangeBrickMode = (nextMode) => {
+    setBrickMode(nextMode);
+    resetAllResults();
+  };
+
+  const handleChangeBrickAllowed = (nextAllowed) => {
+    setBrickAllowed(ensureBrickTypes(nextAllowed));
+    resetAllResults();
+  };
+
   const handleAnalyze = async () => {
     setAnalysisError("");
     setGuideError("");
@@ -179,10 +209,11 @@ export default function Analyze() {
     setAnalysisStatus("running");
 
     try {
-      // 0(제한 없음)도 그대로 전송
+      // guideClient 시그니처/키를 최대한 유지하면서 brickTypes만 확장
       const optionsPayload = {
         gridSize: analysisOptions.gridSize,
-        maxColors: analysisOptions.colorLimit,
+        maxColors: analysisOptions.colorLimit, // 0(제한 없음)도 그대로 전송
+        brickTypes: getBrickTypesToSend(), // H-3 추가
       };
 
       const payload = useSample
@@ -267,6 +298,10 @@ export default function Analyze() {
         colorLimit={analysisOptions.colorLimit}
         onChangeGridSize={handleChangeGridSize}
         onChangeColorLimit={handleChangeColorLimit}
+        brickMode={brickMode}
+        brickAllowed={brickAllowed}
+        onChangeBrickMode={handleChangeBrickMode}
+        onChangeBrickAllowed={handleChangeBrickAllowed}
       />
 
       <BrickGuidePanel
