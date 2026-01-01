@@ -1,5 +1,6 @@
 import { useRef } from "react";
-import BrickSizeSelector from "./BrickSizeSelector.jsx";
+import AnalysisOptionsPanel from "./analysisOptions/AnalysisOptionsPanel.jsx";
+import "./UploadPanel.css";
 
 export default function UploadPanel({
   previewUrl,
@@ -20,7 +21,7 @@ export default function UploadPanel({
   onChangeGridSize,
   onChangeColorLimit,
 
-  // 브릭 옵션 추가
+  // 브릭 옵션
   brickMode,
   brickAllowed,
   onChangeBrickMode,
@@ -126,50 +127,17 @@ export default function UploadPanel({
         </div>
 
         {isOptionsOpen && (
-          <div className="option-panel">
-            <div className="option-field">
-              <label className="option-label">그리드 크기</label>
-              <select
-                className="form-select"
-                value={gridSize}
-                onChange={(e) => onChangeGridSize(e.target.value)}
-                disabled={isRunning}
-              >
-                <option value="16x16">16 x 16</option>
-                <option value="32x32">32 x 32</option>
-                <option value="48x48">48 x 48</option>
-              </select>
-              <div className="option-sub">
-                커스텀 크기는 다음 업데이트에서 지원됩니다.
-              </div>
-            </div>
-
-            <div className="option-field">
-              <label className="option-label">색상 개수 제한</label>
-              <select
-                className="form-select"
-                value={String(colorLimit)}
-                onChange={(e) => onChangeColorLimit(e.target.value)}
-                disabled={isRunning}
-              >
-                <option value="0">제한 없음</option>
-                <option value="8">8 색</option>
-                <option value="16">16 색</option>
-                <option value="24">24 색</option>
-              </select>
-
-              <div className="option-sub">
-                색상 제한이 낮을수록 단순화되고, 높을수록 원본에 가까워집니다.
-              </div>
-            </div>
-
-            <BrickSizeSelector
-              mode={brickMode}
-              allowed={brickAllowed}
-              onChangeMode={onChangeBrickMode}
-              onChangeAllowed={onChangeBrickAllowed}
-            />
-          </div>
+          <AnalysisOptionsPanel
+            disabled={isRunning}
+            gridSize={gridSize}
+            colorLimit={colorLimit}
+            onChangeGridSize={onChangeGridSize}
+            onChangeColorLimit={onChangeColorLimit}
+            brickMode={brickMode}
+            brickAllowed={brickAllowed}
+            onChangeBrickMode={onChangeBrickMode}
+            onChangeBrickAllowed={onChangeBrickAllowed}
+          />
         )}
 
         {!useSample && !hasFile && (

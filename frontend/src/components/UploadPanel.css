@@ -1,0 +1,192 @@
+/* frontend/src/components/UploadPanel.css */
+
+/* =========================================
+   Upload panel
+========================================= */
+.analyze-page .upload-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.analyze-page .upload-control {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 체크/파일 row 기본 정리 */
+.analyze-page .check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--lda-text);
+}
+
+.analyze-page .check-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.analyze-page .upload-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.analyze-page .upload-filename {
+  font-size: 0.88rem;
+  color: var(--lda-muted);
+}
+
+/* 공통 버튼 베이스 */
+.analyze-page .upload-label,
+.analyze-page .btn-primary,
+.analyze-page .btn-reset,
+.analyze-page .option-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.08s ease-out, opacity 0.12s ease-out,
+    background 0.12s ease-out, border-color 0.12s ease-out;
+}
+
+/* 파일 선택 */
+.analyze-page .upload-label {
+  padding: 10px 18px;
+  background: var(--lda-text);
+  color: var(--lda-surface);
+  border: 1px solid var(--lda-border);
+}
+
+.analyze-page .upload-label input[type="file"] {
+  display: none;
+}
+
+/* 미리보기 */
+.analyze-page .upload-preview {
+  margin-top: 12px;
+  border-radius: 18px;
+  border: 1px dashed var(--lda-border);
+  background: var(--lda-surface-2);
+  min-height: 220px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.analyze-page .upload-preview img,
+.analyze-page .upload-preview-image {
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* 액션 영역 */
+.analyze-page .upload-actions {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+@media (max-width: 520px) {
+  .analyze-page .upload-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* 분석하기 (primary) */
+.analyze-page .btn-primary {
+  padding: 10px 18px;
+  background: var(--lda-brand);
+  color: #f9fafb;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  min-height: 40px;
+}
+
+/* 초기화 (secondary) */
+.analyze-page .btn-reset {
+  padding: 10px 18px;
+  background: var(--lda-brand-weak);
+  color: var(--lda-text);
+  border: 1px solid var(--lda-brand-border);
+  min-height: 40px;
+}
+
+/* hover */
+.analyze-page .upload-label:hover,
+.analyze-page .btn-primary:hover:enabled,
+.analyze-page .btn-reset:hover:enabled {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+/* disabled */
+.analyze-page .btn-primary:disabled,
+.analyze-page .btn-reset:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+}
+
+.analyze-page .upload-actions-hint {
+  font-size: 0.82rem;
+  color: var(--lda-muted);
+}
+
+/* =========================================
+   Options toggle UI (토글 버튼/힌트)
+========================================= */
+.analyze-page .option-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.analyze-page .option-toggle {
+  border-radius: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--lda-border);
+  background: var(--lda-surface-2);
+  color: var(--lda-text);
+}
+
+.analyze-page .option-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.analyze-page .option-toggle__title {
+  font-weight: 800;
+}
+
+.analyze-page .option-toggle__summary {
+  font-size: 12px;
+  color: var(--lda-muted);
+}
+
+.analyze-page .option-toggle__chev {
+  margin-left: 4px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.analyze-page .option-hint {
+  font-size: 12px;
+  color: var(--lda-muted);
+}
