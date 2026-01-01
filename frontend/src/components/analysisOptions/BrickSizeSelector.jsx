@@ -44,8 +44,9 @@ export default function BrickSizeSelector({
   onChangeAllowed,
 }) {
   const isManual = mode === "manual";
+  const manualDisabled = !isManual; // 자동 모드면 수동 영역 비활성
 
-  // 정책 적용: 외부에서 allowed가 비어 들어와도 1x1은 유지
+  // 정책 적용: allowed가 비어 들어와도 1x1은 유지
   const safeAllowed = ensureMinAllowed(Array.isArray(allowed) ? allowed : []);
   const selectedCount = safeAllowed.length;
 
@@ -56,51 +57,57 @@ export default function BrickSizeSelector({
   }, []);
 
   const toggleAllowed = (sizeId) => {
+    if (!isManual) return; // 자동 모드 방어
     if (sizeId === "1x1") return; // 1x1 해제 불가
 
     const next = safeAllowed.includes(sizeId)
       ? safeAllowed.filter((x) => x !== sizeId)
       : uniq([...safeAllowed, sizeId]);
 
-    onChangeAllowed(ensureMinAllowed(next));
+    onChangeAllowed?.(ensureMinAllowed(next));
   };
 
   const selectPreset = (preset) => {
+    if (!isManual) return; // 자동 모드 방어
+
     if (preset === "basic") {
-      onChangeAllowed(ensureMinAllowed(["1x1", "1x2", "1x3", "2x2", "2x3"]));
+      onChangeAllowed?.(ensureMinAllowed(["1x1", "1x2", "1x3", "2x2", "2x3"]));
       return;
     }
     if (preset === "detail") {
-      onChangeAllowed(ensureMinAllowed(BRICK_SIZES.map((x) => x.id)));
+      onChangeAllowed?.(ensureMinAllowed(BRICK_SIZES.map((x) => x.id)));
       return;
     }
     if (preset === "easy") {
-      onChangeAllowed(
+      onChangeAllowed?.(
         ensureMinAllowed(["1x1", "1x3", "1x4", "1x5", "2x3", "2x4", "2x5"])
       );
       return;
     }
     if (preset === "all") {
-      onChangeAllowed(ensureMinAllowed(BRICK_SIZES.map((x) => x.id)));
+      onChangeAllowed?.(ensureMinAllowed(BRICK_SIZES.map((x) => x.id)));
       return;
     }
     if (preset === "clear") {
-      onChangeAllowed(["1x1"]); // 정책상 완전 비우기 금지 → 1x1만
+      onChangeAllowed?.(["1x1"]); // 정책상 완전 비우기 금지 → 1x1만
       return;
     }
   };
 
   const handleMode = (nextMode) => {
-    onChangeMode(nextMode);
+    onChangeMode?.(nextMode);
+
+    // 수동 전환 시 최소값 보장
     if (nextMode === "manual") {
-      onChangeAllowed(ensureMinAllowed(safeAllowed));
+      onChangeAllowed?.(ensureMinAllowed(safeAllowed));
     }
   };
 
   return (
     <div className="optGroup">
       <div className="optHeader">
-        <div className="optTitle">브릭 규격</div>
+        <div className="option-label">브릭 규격</div>
+
 
         <div className="modeToggle" role="radiogroup" aria-label="브릭 규격 모드">
           <button
@@ -142,26 +149,58 @@ export default function BrickSizeSelector({
         </div>
       )}
 
-      <div className={`brickManualWrap ${isManual ? "enabled" : "disabled"}`}>
-        {!isManual && <div className="brickLockOverlay">수동 선택은 “수동” 모드에서 가능합니다 🔒</div>}
+      <div
+        className={`brickManualWrap ${isManual ? "enabled" : "disabled"}`}
+        aria-disabled={manualDisabled}
+      >
+        {!isManual && (
+          <div className="brickLockOverlay">
+            수동 선택은 수동 모드에서 가능합니다
+          </div>
+        )}
 
         <div className="presetRow">
-          <button type="button" className="presetBtn" onClick={() => selectPreset("basic")}>
+          <button
+            type="button"
+            className="presetBtn"
+            onClick={() => selectPreset("basic")}
+            disabled={manualDisabled}
+          >
             기본
           </button>
-          <button type="button" className="presetBtn" onClick={() => selectPreset("easy")}>
+          <button
+            type="button"
+            className="presetBtn"
+            onClick={() => selectPreset("easy")}
+            disabled={manualDisabled}
+          >
             쉬움
           </button>
-          <button type="button" className="presetBtn" onClick={() => selectPreset("detail")}>
+          <button
+            type="button"
+            className="presetBtn"
+            onClick={() => selectPreset("detail")}
+            disabled={manualDisabled}
+          >
             정교
           </button>
 
           <div className="presetSpacer" />
 
-          <button type="button" className="presetBtn" onClick={() => selectPreset("all")}>
+          <button
+            type="button"
+            className="presetBtn"
+            onClick={() => selectPreset("all")}
+            disabled={manualDisabled}
+          >
             전체
           </button>
-          <button type="button" className="presetBtn danger" onClick={() => selectPreset("clear")}>
+          <button
+            type="button"
+            className="presetBtn danger"
+            onClick={() => selectPreset("clear")}
+            disabled={manualDisabled}
+          >
             초기화
           </button>
         </div>
@@ -187,6 +226,7 @@ export default function BrickSizeSelector({
                 item={b}
                 selected={safeAllowed.includes(b.id)}
                 onToggle={() => toggleAllowed(b.id)}
+                disabled={manualDisabled}
               />
             ))}
           </div>
@@ -201,6 +241,7 @@ export default function BrickSizeSelector({
                 item={b}
                 selected={safeAllowed.includes(b.id)}
                 onToggle={() => toggleAllowed(b.id)}
+                disabled={manualDisabled}
               />
             ))}
           </div>
@@ -212,26 +253,33 @@ export default function BrickSizeSelector({
   );
 }
 
-function SizeChip({ item, selected, onToggle }) {
+function SizeChip({ item, selected, onToggle, disabled }) {
   const locked = item.locked || item.id === "1x1";
+  const isDisabled = Boolean(disabled) || locked;
 
   return (
     <button
       type="button"
-      className={["sizeChip", selected ? "selected" : "", locked ? "locked" : ""].join(" ")}
+      className={[
+        "sizeChip",
+        selected ? "selected" : "",
+        locked ? "locked" : "",
+        isDisabled ? "isDisabled" : "",
+      ].join(" ")}
       onClick={() => {
-        if (locked) return;
+        if (isDisabled) return;
         onToggle();
       }}
       aria-pressed={selected}
-      aria-disabled={locked}
+      disabled={isDisabled}
       title={locked ? "1×1은 필수입니다" : "클릭하여 선택/해제"}
     >
       <span className="sizeChipLabel">{item.label}</span>
+
       {locked ? (
-        <span className="sizeChipBadge">필수 🔒</span>
+        <span className="sizeChipBadge">필수</span>
       ) : selected ? (
-        <span className="sizeChipBadge ok">선택 ✓</span>
+        <span className="sizeChipBadge ok">선택됨</span>
       ) : (
         <span className="sizeChipBadge ghost">미선택</span>
       )}
