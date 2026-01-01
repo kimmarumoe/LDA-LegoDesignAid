@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
+import "./BrickSizeSelector.css";
 
 /**
- * 브릭 규격 선택(모드 토글 + 체크박스) 컴포넌트
+ * 브릭 규격 선택 컴포넌트
  * - mode: "auto" | "manual"
  * - allowed: ["1x1","1x2",...]
  */
@@ -29,6 +30,13 @@ function ensureMinAllowed(next) {
   return Array.from(set);
 }
 
+function isOneRow(id) {
+  return String(id).startsWith("1x");
+}
+function isTwoRow(id) {
+  return String(id).startsWith("2x");
+}
+
 export default function BrickSizeSelector({
   mode,
   allowed,
@@ -39,10 +47,16 @@ export default function BrickSizeSelector({
 
   // 정책 적용: 외부에서 allowed가 비어 들어와도 1x1은 유지
   const safeAllowed = ensureMinAllowed(Array.isArray(allowed) ? allowed : []);
+  const selectedCount = safeAllowed.length;
+
+  const grouped = useMemo(() => {
+    const one = BRICK_SIZES.filter((b) => isOneRow(b.id));
+    const two = BRICK_SIZES.filter((b) => isTwoRow(b.id));
+    return { one, two };
+  }, []);
 
   const toggleAllowed = (sizeId) => {
-    // 1x1은 해제 불가
-    if (sizeId === "1x1") return;
+    if (sizeId === "1x1") return; // 1x1 해제 불가
 
     const next = safeAllowed.includes(sizeId)
       ? safeAllowed.filter((x) => x !== sizeId)
@@ -56,8 +70,14 @@ export default function BrickSizeSelector({
       onChangeAllowed(ensureMinAllowed(["1x1", "1x2", "1x3", "2x2", "2x3"]));
       return;
     }
-    if (preset === "only1x1") {
-      onChangeAllowed(["1x1"]);
+    if (preset === "detail") {
+      onChangeAllowed(ensureMinAllowed(BRICK_SIZES.map((x) => x.id)));
+      return;
+    }
+    if (preset === "easy") {
+      onChangeAllowed(
+        ensureMinAllowed(["1x1", "1x3", "1x4", "1x5", "2x3", "2x4", "2x5"])
+      );
       return;
     }
     if (preset === "all") {
@@ -65,16 +85,13 @@ export default function BrickSizeSelector({
       return;
     }
     if (preset === "clear") {
-      // 정책상 완전 비우기 금지 → 1x1만 남김
-      onChangeAllowed(["1x1"]);
+      onChangeAllowed(["1x1"]); // 정책상 완전 비우기 금지 → 1x1만
       return;
     }
   };
 
   const handleMode = (nextMode) => {
     onChangeMode(nextMode);
-
-    // 수동 전환 시 최소값 보장
     if (nextMode === "manual") {
       onChangeAllowed(ensureMinAllowed(safeAllowed));
     }
@@ -108,72 +125,116 @@ export default function BrickSizeSelector({
       </div>
 
       {!isManual && (
-        <p className="optHint">
-          자동은(추후) 결과 품질/부품 수 균형을 위해 추천 규격을 사용합니다.
-        </p>
-      )}
-
-      {isManual && (
-        <>
-          <div className="presetRow">
-            <button
-              type="button"
-              className="presetBtn"
-              onClick={() => selectPreset("basic")}
-            >
-              기본(1×1/1×2/1×3/2×2/2×3)
-            </button>
-
-            <button
-              type="button"
-              className="presetBtn"
-              onClick={() => selectPreset("only1x1")}
-            >
-              1×1만
-            </button>
-
-            <button
-              type="button"
-              className="presetBtn"
-              onClick={() => selectPreset("all")}
-            >
-              전체 선택
-            </button>
-
-            <button
-              type="button"
-              className="presetBtn danger"
-              onClick={() => selectPreset("clear")}
-            >
-              전체 해제
-            </button>
-          </div>
-
-          <div className="checkGrid">
-            {BRICK_SIZES.map((b) => {
-              const locked = b.locked || b.id === "1x1";
-              return (
-                <label
-                  key={b.id}
-                  className={`checkItem ${locked ? "locked" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={safeAllowed.includes(b.id)}
-                    disabled={locked}
-                    onChange={() => toggleAllowed(b.id)}
-                  />
-                  <span>{b.id === "1x1" ? "1×1 (필수)" : b.label}</span>
-                </label>
-              );
-            })}
-          </div>
-
+        <div className="brickAutoNote">
+          <div className="brickAutoTitle">추천 규격을 사용합니다</div>
           <p className="optHint">
-            수동 모드에서도 1×1은 항상 포함됩니다.
+            현재 옵션(그리드/색상 제한)을 기준으로 품질과 부품 수 균형을 맞춘 조합을 사용합니다.
           </p>
-        </>
+          <div className="brickSummaryBar">
+            <span className="brickSummaryKey">현재 선택</span>
+            <span className="brickSummaryVal">{selectedCount}개 규격</span>
+            <span className="brickSummaryDot" />
+            <span className="brickSummaryVal">
+              1×N {safeAllowed.filter(isOneRow).length} / 2×N{" "}
+              {safeAllowed.filter(isTwoRow).length}
+            </span>
+          </div>
+        </div>
       )}
+
+      <div className={`brickManualWrap ${isManual ? "enabled" : "disabled"}`}>
+        {!isManual && <div className="brickLockOverlay">수동 선택은 “수동” 모드에서 가능합니다 🔒</div>}
+
+        <div className="presetRow">
+          <button type="button" className="presetBtn" onClick={() => selectPreset("basic")}>
+            기본
+          </button>
+          <button type="button" className="presetBtn" onClick={() => selectPreset("easy")}>
+            쉬움
+          </button>
+          <button type="button" className="presetBtn" onClick={() => selectPreset("detail")}>
+            정교
+          </button>
+
+          <div className="presetSpacer" />
+
+          <button type="button" className="presetBtn" onClick={() => selectPreset("all")}>
+            전체
+          </button>
+          <button type="button" className="presetBtn danger" onClick={() => selectPreset("clear")}>
+            초기화
+          </button>
+        </div>
+
+        <div className="brickSummaryBar">
+          <span className="brickSummaryKey">선택</span>
+          <span className="brickSummaryVal">{selectedCount}개 규격</span>
+          <span className="brickSummaryDot" />
+          <span className="brickSummaryVal">
+            1×N {safeAllowed.filter(isOneRow).length} / 2×N{" "}
+            {safeAllowed.filter(isTwoRow).length}
+          </span>
+          <span className="brickSummaryDot" />
+          <span className="brickSummaryHint">1×1은 필수</span>
+        </div>
+
+        <div className="brickSection">
+          <div className="brickSectionTitle">1×N</div>
+          <div className="chipGrid">
+            {grouped.one.map((b) => (
+              <SizeChip
+                key={b.id}
+                item={b}
+                selected={safeAllowed.includes(b.id)}
+                onToggle={() => toggleAllowed(b.id)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="brickSection">
+          <div className="brickSectionTitle">2×N</div>
+          <div className="chipGrid">
+            {grouped.two.map((b) => (
+              <SizeChip
+                key={b.id}
+                item={b}
+                selected={safeAllowed.includes(b.id)}
+                onToggle={() => toggleAllowed(b.id)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <p className="optHint">수동 모드에서도 1×1은 항상 포함됩니다.</p>
+      </div>
     </div>
+  );
+}
+
+function SizeChip({ item, selected, onToggle }) {
+  const locked = item.locked || item.id === "1x1";
+
+  return (
+    <button
+      type="button"
+      className={["sizeChip", selected ? "selected" : "", locked ? "locked" : ""].join(" ")}
+      onClick={() => {
+        if (locked) return;
+        onToggle();
+      }}
+      aria-pressed={selected}
+      aria-disabled={locked}
+      title={locked ? "1×1은 필수입니다" : "클릭하여 선택/해제"}
+    >
+      <span className="sizeChipLabel">{item.label}</span>
+      {locked ? (
+        <span className="sizeChipBadge">필수 🔒</span>
+      ) : selected ? (
+        <span className="sizeChipBadge ok">선택 ✓</span>
+      ) : (
+        <span className="sizeChipBadge ghost">미선택</span>
+      )}
+    </button>
   );
 }
