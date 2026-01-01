@@ -1,0 +1,43 @@
+/* frontend/src/components/AnalysisOptionsPanel.css */
+
+/* 옵션 패널 */
+.analyze-page .option-panel {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--lda-border);
+  background: var(--lda-surface);
+  display: grid;
+  gap: 14px;
+}
+
+.analyze-page .option-field {
+  display: grid;
+  gap: 8px;
+}
+
+.analyze-page .option-label {
+  font-weight: 800;
+  color: var(--lda-text);
+}
+
+.analyze-page .option-sub {
+  font-size: 12px;
+  color: var(--lda-muted);
+}
+
+.analyze-page .form-select,
+.analyze-page select {
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--lda-control-border);
+  background: var(--lda-control-bg);
+  color: var(--lda-text);
+}
+
+.analyze-page .form-select:focus,
+.analyze-page select:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--lda-focus);
+}
