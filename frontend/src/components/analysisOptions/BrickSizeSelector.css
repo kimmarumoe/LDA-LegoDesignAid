@@ -110,9 +110,24 @@
 
 .chipGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
 }
+
+/* 태블릿 */
+@media (max-width: 900px) {
+  .chipGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* 모바일 */
+@media (max-width: 520px) {
+  .chipGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 
 .sizeChip {
   display: flex;
