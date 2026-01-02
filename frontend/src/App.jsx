@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home.jsx";
 import Analyze from "./pages/Analyze.jsx";
 import Gallery from "./pages/Gallery.jsx";
-import Layout from "./components/Layout.jsx";
+import Layout from "./components/layout/Layout.jsx";
 import Sample from "./pages/Sample.jsx";
 export default function App() {
   return (
