@@ -49,11 +49,7 @@ function parseGridSize(gridSize) {
 function buildAnalyzeOptionsPayload(options) {
   const { width, height } = parseGridSize(options?.gridSize);
   return {
-    grid: {
-      mode: "preset",
-      width,
-      height,
-    },
+    grid: { mode: "preset", width, height },
     colorLimit: options?.colorLimit ?? 16,
   };
 }
@@ -209,11 +205,10 @@ export default function Analyze() {
     setAnalysisStatus("running");
 
     try {
-      // guideClient 시그니처/키를 최대한 유지하면서 brickTypes만 확장
       const optionsPayload = {
         gridSize: analysisOptions.gridSize,
         maxColors: analysisOptions.colorLimit, // 0(제한 없음)도 그대로 전송
-        brickTypes: getBrickTypesToSend(), // H-3 추가
+        brickTypes: getBrickTypesToSend(),
       };
 
       const payload = useSample
@@ -281,38 +276,40 @@ export default function Analyze() {
 
   return (
     <main className="analyze-page">
-      <UploadPanel
-        previewUrl={previewUrl}
-        hasFile={!!selectedFile}
-        fileName={selectedFile?.name ?? ""}
-        useSample={useSample}
-        onToggleSample={handleToggleSample}
-        analysisStatus={analysisStatus}
-        analysisError={analysisError}
-        onImageSelect={handleImageSelect}
-        onAnalyze={handleAnalyze}
-        onReset={handleReset}
-        isOptionsOpen={isOptionsOpen}
-        onToggleOptions={handleToggleOptions}
-        gridSize={analysisOptions.gridSize}
-        colorLimit={analysisOptions.colorLimit}
-        onChangeGridSize={handleChangeGridSize}
-        onChangeColorLimit={handleChangeColorLimit}
-        brickMode={brickMode}
-        brickAllowed={brickAllowed}
-        onChangeBrickMode={handleChangeBrickMode}
-        onChangeBrickAllowed={handleChangeBrickAllowed}
-      />
+      <div className="analyze-container">
+        <UploadPanel
+          previewUrl={previewUrl}
+          hasFile={!!selectedFile}
+          fileName={selectedFile?.name ?? ""}
+          useSample={useSample}
+          onToggleSample={handleToggleSample}
+          analysisStatus={analysisStatus}
+          analysisError={analysisError}
+          onImageSelect={handleImageSelect}
+          onAnalyze={handleAnalyze}
+          onReset={handleReset}
+          isOptionsOpen={isOptionsOpen}
+          onToggleOptions={handleToggleOptions}
+          gridSize={analysisOptions.gridSize}
+          colorLimit={analysisOptions.colorLimit}
+          onChangeGridSize={handleChangeGridSize}
+          onChangeColorLimit={handleChangeColorLimit}
+          brickMode={brickMode}
+          brickAllowed={brickAllowed}
+          onChangeBrickMode={handleChangeBrickMode}
+          onChangeBrickAllowed={handleChangeBrickAllowed}
+        />
 
-      <BrickGuidePanel
-        analysisStatus={analysisStatus}
-        analysisError={analysisError}
-        analysisResult={analysisResult}
-        guideStatus={guideStatus}
-        guideError={guideError}
-        guideSteps={guideSteps}
-        onGenerateGuide={handleGenerateGuide}
-      />
+        <BrickGuidePanel
+          analysisStatus={analysisStatus}
+          analysisError={analysisError}
+          analysisResult={analysisResult}
+          guideStatus={guideStatus}
+          guideError={guideError}
+          guideSteps={guideSteps}
+          onGenerateGuide={handleGenerateGuide}
+        />
+      </div>
     </main>
   );
 }
