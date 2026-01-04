@@ -1,8 +1,10 @@
-import { useRef, useState } from "react";
+// frontend/src/pages/Analyze.jsx
+import { useEffect, useRef, useState } from "react";
 import UploadPanel from "../components/UploadPanel.jsx";
 import BrickGuidePanel from "../components/BrickGuidePanel.jsx";
 import { SAMPLE_GUIDE } from "../sample/sampleGuide.js";
 import { analyzeGuide } from "../api/guideClient";
+import { BRICK_TYPES } from "../types/legoGuide";
 import "./Analyze.css";
 
 const DEFAULT_OPTIONS = {
@@ -16,59 +18,58 @@ const COLOR_LIMIT_PRESETS = new Set([0, 8, 16, 24]);
 // 자동 모드 프리셋(원하면 여기만 바꾸면 됨)
 const AUTO_BRICK_PRESET = ["1x1", "1x2", "1x3", "2x2", "2x3"];
 
+function toInputValue(input) {
+  return typeof input === "object" && input?.target ? input.target.value : input;
+}
+
 function toSafeGridSize(input) {
-  const raw =
-    typeof input === "object" && input?.target ? input.target.value : input;
-
-  const v = String(raw ?? "")
-    .replace(/\s+/g, "")
-    .toLowerCase();
-
+  const raw = toInputValue(input);
+  const v = String(raw ?? "").replace(/\s+/g, "").toLowerCase();
   return GRID_PRESETS.has(v) ? v : "16x16";
 }
 
 function toSafeColorLimit(input) {
-  const raw =
-    typeof input === "object" && input?.target ? input.target.value : input;
-
+  const raw = toInputValue(input);
   const n = Number(raw);
   if (!Number.isFinite(n)) return 16;
   return COLOR_LIMIT_PRESETS.has(n) ? n : 16;
 }
 
-function parseGridSize(gridSize) {
-  const [w, h] = String(gridSize)
-    .split("x")
-    .map((v) => Number(v));
-  const width = Number.isFinite(w) ? w : 16;
-  const height = Number.isFinite(h) ? h : 16;
-  return { width, height };
+function toSafeBrickMode(input) {
+  const raw = toInputValue(input);
+  const v = String(raw ?? "").trim().toLowerCase();
+  if (v === "auto" || v === "manual") return v;
+  // 레거시 오타가 들어와도 manual로 보정
+  if (v === "menual") return "manual";
+  return "manual";
 }
 
-// (현재는 미사용이지만 유지)
-function buildAnalyzeOptionsPayload(options) {
-  const { width, height } = parseGridSize(options?.gridSize);
-  return {
-    grid: { mode: "preset", width, height },
-    colorLimit: options?.colorLimit ?? 16,
-  };
-}
+// BRICK_TYPES 기준으로 필터링 + 1x1 항상 포함
+function normalizeBrickTypes(list) {
+  const allowed = new Set(BRICK_TYPES);
+  const input = Array.isArray(list) ? list : [];
 
-// 브릭 타입 최소 보장(1x1 항상 포함)
-function ensureBrickTypes(list) {
-  const set = new Set(Array.isArray(list) ? list : []);
-  set.add("1x1");
-  return Array.from(set);
+  const filtered = input
+    .map((x) => String(x).trim())
+    .filter(Boolean)
+    .filter((x) => allowed.has(x));
+
+  const unique = Array.from(new Set(filtered));
+  if (!unique.includes("1x1")) unique.unshift("1x1");
+  return unique;
 }
 
 export default function Analyze() {
+  // 분석 요청 abort + 최신 요청만 반영하기 위한 ref
   const analyzeAbortRef = useRef(null);
+  const requestSeqRef = useRef(0);
 
+  // 입력 상태
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-
   const [useSample, setUseSample] = useState(true);
 
+  // 옵션 상태
   const [analysisOptions, setAnalysisOptions] = useState(DEFAULT_OPTIONS);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
 
@@ -76,10 +77,12 @@ export default function Analyze() {
   const [brickMode, setBrickMode] = useState("manual"); // "auto" | "manual"
   const [brickAllowed, setBrickAllowed] = useState(["1x1"]); // manual 모드에서 사용
 
+  // STEP01 결과
   const [analysisResult, setAnalysisResult] = useState(null);
   const [analysisStatus, setAnalysisStatus] = useState("idle"); // idle | running | done | error
   const [analysisError, setAnalysisError] = useState("");
 
+  // STEP02 결과(steps)
   const [availableSteps, setAvailableSteps] = useState([]);
   const [guideSteps, setGuideSteps] = useState([]);
   const [guideStatus, setGuideStatus] = useState("idle"); // idle | running | done | error
@@ -108,7 +111,8 @@ export default function Analyze() {
         case "INVALID_RESPONSE":
           return "서버 응답 형식이 올바르지 않습니다. 서버 로그를 확인해주세요.";
         case "ABORTED":
-          return "요청이 취소되었습니다.";
+          // 사용자 의도 중단은 보통 에러로 보여주지 않는 편이 UX가 좋음
+          return "";
         default:
           return err.message || "알 수 없는 오류가 발생했습니다.";
       }
@@ -129,28 +133,44 @@ export default function Analyze() {
     setGuideError("");
   }
 
+  function abortAnalyze() {
+    if (analyzeAbortRef.current) {
+      analyzeAbortRef.current.abort();
+      analyzeAbortRef.current = null;
+    }
+    // 이전 요청이 늦게 도착해도 반영되지 않도록 시퀀스를 올림
+    requestSeqRef.current += 1;
+  }
+
   function extractAnalysisOnly(guidePayload) {
     const { steps, ...analysisOnly } = guidePayload ?? {};
     return analysisOnly;
   }
 
   function normalizeSteps(steps) {
-    if (!Array.isArray(steps)) return [];
-    return steps;
+    return Array.isArray(steps) ? steps : [];
   }
 
   function getBrickTypesToSend() {
-    if (brickMode === "auto") return ensureBrickTypes(AUTO_BRICK_PRESET);
-    return ensureBrickTypes(brickAllowed);
+    if (brickMode === "auto") return normalizeBrickTypes(AUTO_BRICK_PRESET);
+    return normalizeBrickTypes(brickAllowed);
   }
 
+  // 컴포넌트 언마운트 시 진행중 요청 중단
+  useEffect(() => {
+    return () => abortAnalyze();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleImageSelect = (file, url) => {
+    abortAnalyze();
     setSelectedFile(file);
     setPreviewUrl(url);
     resetAllResults();
   };
 
   const handleToggleSample = (next) => {
+    abortAnalyze();
     setUseSample(next);
     resetAllResults();
   };
@@ -160,29 +180,34 @@ export default function Analyze() {
   };
 
   const handleChangeGridSize = (nextGridSize) => {
+    abortAnalyze();
     const safe = toSafeGridSize(nextGridSize);
     setAnalysisOptions((prev) => ({ ...prev, gridSize: safe }));
     resetAllResults();
   };
 
   const handleChangeColorLimit = (nextLimit) => {
+    abortAnalyze();
     const safe = toSafeColorLimit(nextLimit);
     setAnalysisOptions((prev) => ({ ...prev, colorLimit: safe }));
     resetAllResults();
   };
 
-  // 브릭 옵션 변경 핸들러(H-3)
   const handleChangeBrickMode = (nextMode) => {
-    setBrickMode(nextMode);
+    abortAnalyze();
+    const safe = toSafeBrickMode(nextMode);
+    setBrickMode(safe);
     resetAllResults();
   };
 
   const handleChangeBrickAllowed = (nextAllowed) => {
-    setBrickAllowed(ensureBrickTypes(nextAllowed));
+    abortAnalyze();
+    setBrickAllowed(normalizeBrickTypes(nextAllowed));
     resetAllResults();
   };
 
   const handleAnalyze = async () => {
+    // 새 분석 시작 전 상태 정리
     setAnalysisError("");
     setGuideError("");
     setGuideSteps([]);
@@ -194,10 +219,9 @@ export default function Analyze() {
       return;
     }
 
-    if (analyzeAbortRef.current) {
-      analyzeAbortRef.current.abort();
-      analyzeAbortRef.current = null;
-    }
+    // 이전 요청 중단 + 최신 요청 번호 확보
+    abortAnalyze();
+    const seq = requestSeqRef.current;
 
     const controller = new AbortController();
     analyzeAbortRef.current = controller;
@@ -205,9 +229,11 @@ export default function Analyze() {
     setAnalysisStatus("running");
 
     try {
+      // legoGuide.ts 계약을 기본으로 구성 (guideClient에서 레거시 키도 흡수 가능)
       const optionsPayload = {
         gridSize: analysisOptions.gridSize,
-        maxColors: analysisOptions.colorLimit, // 0(제한 없음)도 그대로 전송
+        colorLimit: analysisOptions.colorLimit, // 0(제한 없음) 포함
+        brickMode, // auto | manual
         brickTypes: getBrickTypesToSend(),
       };
 
@@ -215,19 +241,34 @@ export default function Analyze() {
         ? SAMPLE_GUIDE
         : await analyzeGuide(selectedFile, optionsPayload, controller.signal);
 
+      // 최신 요청이 아니면 반영하지 않음
+      if (seq !== requestSeqRef.current) return;
+
       const analysisOnly = extractAnalysisOnly(payload);
       const steps = normalizeSteps(payload?.steps);
 
       setAnalysisResult(analysisOnly);
       setAvailableSteps(steps);
-
       setAnalysisStatus("done");
     } catch (err) {
+      if (seq !== requestSeqRef.current) return;
+
+      const msg = normalizeClientError(err);
+      // ABORTED는 보통 에러 표시하지 않음
+      if (!msg) {
+        setAnalysisStatus("idle");
+        setAnalysisError("");
+        return;
+      }
+
       console.error(err);
       setAnalysisStatus("error");
-      setAnalysisError(normalizeClientError(err));
+      setAnalysisError(msg);
     } finally {
-      analyzeAbortRef.current = null;
+      // 최신 요청일 때만 ref 정리
+      if (seq === requestSeqRef.current) {
+        analyzeAbortRef.current = null;
+      }
     }
   };
 
@@ -245,10 +286,12 @@ export default function Analyze() {
     setGuideStatus("running");
 
     try {
+      // 현재는 STEP01 payload에 steps가 있는 샘플/임시 구조만 지원
+      // 추후 /api/guide/steps 연동 시 여기만 교체하면 됨
       if (!availableSteps || availableSteps.length === 0) {
         setGuideStatus("error");
         setGuideError(
-          "현재 steps 데이터가 없어요.\n샘플 모드를 사용하거나, steps 생성 API 연동을 추가해주세요."
+          "현재 steps 데이터가 없어요.\n샘플 모드를 사용하거나, steps 생성 API(/api/guide/steps) 연동을 추가해주세요."
         );
         return;
       }
@@ -263,11 +306,7 @@ export default function Analyze() {
   };
 
   const handleReset = () => {
-    if (analyzeAbortRef.current) {
-      analyzeAbortRef.current.abort();
-      analyzeAbortRef.current = null;
-    }
-
+    abortAnalyze();
     setSelectedFile(null);
     setPreviewUrl(null);
     setIsOptionsOpen(false);

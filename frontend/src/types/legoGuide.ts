@@ -39,14 +39,16 @@ export interface GuideRequest {
   meta?: GuideMeta; // 부가 정보
 }
 
-// H-3 이미지 분석 옵션(체크박스/옵션 UI가 만드는 값)
+// 이미지 분석 옵션(체크박스/옵션 UI가 만드는 값)
 export interface AnalyzeOptions {
   gridSize: "16x16" | "32x32" | "48x48";
-  colorLimit: 8 | 16 | 24;
+  colorLimit: 0 | 8 | 16 | 24;
   brickTypes: BrickType[];
+
+  brickMode?: "auto" | "manual";
 }
 
-// 타일링 결과 배치 단위(H-3)
+// 타일링 결과 배치 단위
 export interface Placement {
   id?: BrickId;
   x: number;
@@ -65,7 +67,7 @@ export interface GuideStepV1 {
   brickIds: BrickId[]; // 이 단계에서 사용할 브릭들의 id 목록
 }
 
-// 조립 과정의 한 단계 정보 (H-3 V2: placements 기반)
+// 조립 과정의 한 단계 정보 ( V2: placements 기반)
 export interface GuideStepV2 {
   index: number; // 단계 번호
   title: string;
@@ -82,17 +84,17 @@ export interface GuideStats {
   totalSteps: number;
 }
 
-// 부품 수량(H-3)
+// 부품 수량
 // 서버가 BrickType 키를 주로 쓰겠지만, 유연하게 문자열 키도 허용
 export type PartsMap = Partial<Record<BrickType, number>> & Record<string, number>;
 
 // AI 서버에서 돌아오는 최종 조립 가이드 응답
 export interface GuideResponse {
-  steps: GuideStep[]; // 단계별 가이드 목록
+  steps?: GuideStep[]; // 단계별 가이드 목록
   summary?: string; // 전체 요약 문장
   stats?: GuideStats; // 통계 정보
 
-  // H-3 확장 필드
+  
   meta?: GuideMeta;
   brick_types?: BrickType[]; // 서버 정규화 결과
   placements?: Placement[]; // 전체 배치
