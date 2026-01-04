@@ -1,5 +1,6 @@
 // frontend/src/api/guideClient.ts
-import type { GuideResponse } from "../types/legoGuide";
+import type { GuideResponse, AnalyzeOptions, BrickType } from "../types/legoGuide";
+import { BRICK_TYPES } from "../types/legoGuide";
 
 type NormalizedApiErrorKind =
   | "TIMEOUT"
@@ -17,19 +18,6 @@ export type NormalizedApiError = {
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:9000";
-
-type GridSizePreset = "16x16" | "32x32" | "48x48";
-
-// 0 = 제한 없음
-type MaxColorsPreset = 0 | 8 | 16 | 24;
-
-export type AnalyzeOptions = {
-  gridSize: GridSizePreset;
-  maxColors: MaxColorsPreset;
-
-  // ✅ 추가: 예) ["2x5"] / ["plate"] / ["2x5","1x1"] 등
-  brickTypes?: string[];
-};
 
 function timeoutSignal(ms: number) {
   const controller = new AbortController();
@@ -50,18 +38,12 @@ function toNumberOrNull(v: unknown): number | null {
   return null;
 }
 
-function acceptMaxColors(n: number): n is MaxColorsPreset {
-  return n === 0 || n === 8 || n === 16 || n === 24;
-}
-
 function toStringArrayOrNull(v: unknown): string[] | null {
-  // "2x5" -> ["2x5"]
   if (typeof v === "string") {
     const s = v.trim();
     return s ? [s] : null;
   }
 
-  // ["2x5","plate"] -> 그대로 (빈 문자열 제거)
   if (Array.isArray(v) && v.every((x) => typeof x === "string")) {
     const cleaned = v.map((x) => x.trim()).filter(Boolean);
     return cleaned.length ? cleaned : null;
@@ -70,14 +52,57 @@ function toStringArrayOrNull(v: unknown): string[] | null {
   return null;
 }
 
+type BrickModePreset = "auto" | "manual";
+
 /**
- * UI/서버 양쪽 표기(gridSize vs grid_size 등)를 흡수해서
- * 일관된 옵션 객체로 정규화한다.
+ * "menual" 같은 레거시 오타까지 흡수해서 "manual"로 정규화
+ */
+function toBrickModeOrNull(v: unknown): BrickModePreset | null {
+  if (typeof v !== "string") return null;
+  const s = v.trim().toLowerCase();
+  if (s === "auto") return "auto";
+  if (s === "manual") return "manual";
+  if (s === "menual") return "manual"; // 오타 호환
+  return null;
+}
+
+function acceptGridSize(v: unknown): AnalyzeOptions["gridSize"] | null {
+  if (typeof v !== "string") return null;
+  const g = v.toLowerCase().replace(/\s+/g, "");
+  if (g === "16x16" || g === "32x32" || g === "48x48") {
+    return g as AnalyzeOptions["gridSize"];
+  }
+  return null;
+}
+
+function acceptColorLimit(n: number): AnalyzeOptions["colorLimit"] | null {
+  // legoGuide.ts 기준: 0 | 8 | 16 | 24
+  if (n === 0 || n === 8 || n === 16 || n === 24) {
+    return n as AnalyzeOptions["colorLimit"];
+  }
+  return null;
+}
+
+function filterBrickTypes(values: string[]): BrickType[] {
+  const allowed = new Set<string>(BRICK_TYPES as readonly string[]);
+  const cleaned = values.map((x) => x.trim()).filter(Boolean);
+  const filtered = cleaned.filter((x) => allowed.has(x));
+  return Array.from(new Set(filtered)) as BrickType[];
+}
+
+function ensure1x1(bricks: BrickType[]): BrickType[] {
+  if (bricks.includes("1x1")) return bricks;
+  return (["1x1", ...bricks] as BrickType[]);
+}
+
+/**
+ * UI/서버 표기(gridSize vs grid_size 등)를 흡수해서 정규화한다.
  *
- * 중요한 포인트:
- * - maxColors: 0(제한 없음)도 유효 값으로 취급해야 한다.
- * - 0은 falsy이므로 "있음/없음" 체크를 typeof === "number"로 해야 한다.
- * - brickTypes는 options JSON 안에 brick_types로 실어서 보낸다(스웨거와 동일)
+ * 정책:
+ * - 0(제한 없음)은 falsy이므로 typeof === "number"로 체크
+ * - brickMode만 단독이면 의미가 약하므로 null 반환(의도/주석 일치)
+ * - brickTypes는 BRICK_TYPES 기준으로 필터링
+ * - 수동 선택이 들어오면 1x1 강제 포함
  */
 function normalizeAnalyzeOptions(
   options: unknown
@@ -91,45 +116,58 @@ function normalizeAnalyzeOptions(
     options.grid ??
     options.gridSizePreset;
 
+  // colorLimit / maxColors 모두 흡수
   const colorsCandidate =
+    options.colorLimit ??
+    options.color_limit ??
     options.maxColors ??
     options.max_colors ??
-    options.colors ??
-    options.colorLimit;
+    options.colors;
 
-  // ✅ brick types: camel/snake/단수 키까지 흡수
+  const brickModeCandidate =
+    options.brickMode ??
+    options.brick_mode ??
+    options.mode ??
+    options.bricksMode;
+
+  // brickTypes / allowedBricks / brick_types 등 모두 흡수
   const brickTypesCandidate =
     options.brickTypes ??
     options.brick_types ??
+    options.allowedBricks ??
+    options.allowed_bricks ??
     options.brickType ??
     options.brick_type;
 
   const normalized: Partial<AnalyzeOptions> = {};
 
-  if (typeof gridCandidate === "string") {
-    const g = gridCandidate.toLowerCase().replace(/\s+/g, "");
-    if (g === "16x16" || g === "32x32" || g === "48x48") {
-      normalized.gridSize = g as GridSizePreset;
+  const grid = acceptGridSize(gridCandidate);
+  if (grid) normalized.gridSize = grid;
+
+  const num = toNumberOrNull(colorsCandidate);
+  if (num !== null) {
+    const cl = acceptColorLimit(num);
+    if (cl !== null) normalized.colorLimit = cl;
+  }
+
+  const mode = toBrickModeOrNull(brickModeCandidate);
+  if (mode) normalized.brickMode = mode;
+
+  const raw = toStringArrayOrNull(brickTypesCandidate);
+  if (raw) {
+    const bricks = filterBrickTypes(raw);
+    if (bricks.length > 0) {
+      // brickTypes가 있으면 사실상 manual 성격이므로 1x1 포함
+      normalized.brickTypes = ensure1x1(bricks);
     }
   }
 
-  const n = toNumberOrNull(colorsCandidate);
-  if (n !== null && acceptMaxColors(n)) {
-    normalized.maxColors = n;
-  }
-
-  const bt = toStringArrayOrNull(brickTypesCandidate);
-  if (bt) {
-    normalized.brickTypes = bt;
-  }
-
   const hasGrid = typeof normalized.gridSize === "string";
-  const hasMaxColors = typeof normalized.maxColors === "number"; // 0도 true
-  const hasBrickTypes =
-    Array.isArray(normalized.brickTypes) && normalized.brickTypes.length > 0;
+  const hasColors = typeof normalized.colorLimit === "number"; // 0도 true
+  const hasBricks = Array.isArray(normalized.brickTypes) && normalized.brickTypes.length > 0;
 
-  // ✅ brickTypes만 있어도 options는 유효
-  if (!hasGrid && !hasMaxColors && !hasBrickTypes) return null;
+  // brickMode 단독이면 의미가 약하므로 null
+  if (!hasGrid && !hasColors && !hasBricks) return null;
 
   return normalized;
 }
@@ -142,6 +180,7 @@ async function requestJson<T>(
 ): Promise<T> {
   const { signal: tSignal, clear } = timeoutSignal(timeoutMs);
   const controller = new AbortController();
+  let timedOut = false;
 
   if (externalSignal) {
     if (externalSignal.aborted) controller.abort();
@@ -151,7 +190,14 @@ async function requestJson<T>(
       });
   }
 
-  tSignal.addEventListener("abort", () => controller.abort(), { once: true });
+  tSignal.addEventListener(
+    "abort",
+    () => {
+      timedOut = true;
+      controller.abort();
+    },
+    { once: true }
+  );
 
   try {
     const res = await fetch(url, { ...init, signal: controller.signal });
@@ -182,9 +228,22 @@ async function requestJson<T>(
       } satisfies NormalizedApiError;
     }
 
-    return (await res.json()) as T;
+    try {
+      return (await res.json()) as T;
+    } catch {
+      throw {
+        kind: "INVALID_RESPONSE",
+        message: "서버 JSON 파싱에 실패했습니다.",
+      } satisfies NormalizedApiError;
+    }
   } catch (err: any) {
     if (err?.name === "AbortError") {
+      if (timedOut) {
+        throw {
+          kind: "TIMEOUT",
+          message: "요청 시간이 초과되었습니다.",
+        } satisfies NormalizedApiError;
+      }
       throw {
         kind: "ABORTED",
         message: "요청이 취소되었습니다.",
@@ -207,9 +266,11 @@ async function requestJson<T>(
 /**
  * 이미지 파일로 가이드 분석: /api/guide/analyze
  *
- * 전송 정책:
- * - options(JSON): gridSize, maxColors(0 포함), brick_types 전달
- * - grid_size / max_colors: Form 필드 호환 전달 (0도 전달)
+ * 전송 정책(호환 중심):
+ * - options(JSON) + Form 필드 동시 전송
+ * - colorLimit: color_limit + max_colors 둘 다 전송(서버 키 차이 흡수)
+ * - brickMode: brick_mode 전송
+ * - brickTypes: brick_types + allowed_bricks (JSON 문자열) 전송
  */
 export async function analyzeGuide(
   imageFile: File,
@@ -222,36 +283,42 @@ export async function analyzeGuide(
   const normalized = normalizeAnalyzeOptions(options);
 
   if (normalized) {
-    // ✅ 스웨거와 같은 키로 구성해서 보냄
     const optionsPayload: Record<string, unknown> = {};
 
     if (normalized.gridSize) {
+      optionsPayload.grid_size = normalized.gridSize;
       optionsPayload.gridSize = normalized.gridSize;
+      form.append("grid_size", normalized.gridSize);
     }
 
-    // 0(제한 없음)도 포함
-    if (typeof normalized.maxColors === "number") {
-      optionsPayload.maxColors = normalized.maxColors;
-      // (호환) 서버에서 colorLimit도 보는 경우 대비
-      optionsPayload.colorLimit = normalized.maxColors;
+    if (typeof normalized.colorLimit === "number") {
+      optionsPayload.color_limit = normalized.colorLimit;
+      optionsPayload.colorLimit = normalized.colorLimit;
+
+      // 레거시 호환
+      optionsPayload.max_colors = normalized.colorLimit;
+      optionsPayload.maxColors = normalized.colorLimit;
+
+      form.append("color_limit", String(normalized.colorLimit));
+      form.append("max_colors", String(normalized.colorLimit));
+    }
+
+    if (normalized.brickMode) {
+      optionsPayload.brick_mode = normalized.brickMode;
+      optionsPayload.brickMode = normalized.brickMode;
+      form.append("brick_mode", normalized.brickMode);
     }
 
     if (normalized.brickTypes && normalized.brickTypes.length > 0) {
       optionsPayload.brick_types = normalized.brickTypes;
-      // (호환) camelCase도 같이(서버에서 brickTypes 볼 때 대비)
       optionsPayload.brickTypes = normalized.brickTypes;
+
+      const json = JSON.stringify(normalized.brickTypes);
+      form.append("brick_types", json);
+      form.append("allowed_bricks", json); // 서버 키 차이 흡수
     }
 
     form.append("options", JSON.stringify(optionsPayload));
-  }
-
-  if (normalized?.gridSize) {
-    form.append("grid_size", normalized.gridSize);
-  }
-
-  // 0(제한 없음)도 전달해야 백엔드가 None 처리할 수 있다
-  if (typeof normalized?.maxColors === "number") {
-    form.append("max_colors", String(normalized.maxColors));
   }
 
   return requestJson<GuideResponse>(
