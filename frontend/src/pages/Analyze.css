@@ -4,22 +4,19 @@
    0) Theme tokens (Home 톤에 맞춤)
 ========================================= */
 .analyze-page {
-  /* Home 배경과 동일 톤 */
-  --lda-bg: #faf7f2;           /* <- 기존 #f5f6f8에서 변경 */
+  --lda-bg: #faf7f2;
   --lda-surface: #ffffff;
   --lda-surface-2: rgba(0, 0, 0, 0.03);
 
-  --lda-text: #1a1a1a;         /* Home text 톤 */
-  --lda-muted: #666;           /* Home muted 톤 */
+  --lda-text: #1a1a1a;
+  --lda-muted: #666;
 
-  /* Home 느낌에 맞게 border/ shadow를 살짝 부드럽게 */
   --lda-border: rgba(0, 0, 0, 0.08);
   --lda-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 
   --lda-control-bg: #ffffff;
   --lda-control-border: rgba(0, 0, 0, 0.18);
 
-  /* Home brand 톤 */
   --lda-brand: #2c7873;
   --lda-brand-weak: rgba(44, 120, 115, 0.12);
   --lda-brand-border: rgba(44, 120, 115, 0.30);
@@ -27,29 +24,47 @@
 }
 
 /* =========================================
-   1) Page layout (캔버스 + 컨테이너)
+   1) Page layout
 ========================================= */
 .analyze-page {
   margin: 0;
   min-height: 100vh;
   background: var(--lda-bg);
   color: var(--lda-text);
+
+  /* 모바일에서 가로 오버플로우가 생겨 화면이 옆으로 밀리는 현상 방지 */
+  overflow-x: clip;
 }
 
-/* Home의 .home-container 역할 */
+/* Analyze 영역 내부에서만 box-sizing을 안정화 */
+.analyze-page,
+.analyze-page * {
+  box-sizing: border-box;
+}
+
+.analyze-page img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
 .analyze-container {
-  max-width: 980px;
+  width: 100%;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 32px 40px 80px;
+
+  padding: 24px 0 80px;
 
   display: flex;
   flex-direction: column;
   gap: 24px;
+
+  min-width: 0;
 }
 
 @media (max-width: 768px) {
   .analyze-container {
-    padding: 24px 20px 60px;
+    padding: 16px 0 60px;
   }
 }
 
@@ -62,6 +77,7 @@
   border-radius: 24px;
   padding: 20px 22px;
   box-shadow: var(--lda-shadow);
+  min-width: 0;
 }
 
 .analyze-page .panel h2 {
@@ -98,6 +114,7 @@
 .analyze-page .upload-panel {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .analyze-page .upload-control {
@@ -125,11 +142,14 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .analyze-page .upload-filename {
   font-size: 0.88rem;
   color: var(--lda-muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .analyze-page .upload-label,
@@ -186,6 +206,7 @@
   justify-content: space-between;
   gap: 12px;
   width: 100%;
+  min-width: 0;
 }
 
 @media (max-width: 520px) {
@@ -239,6 +260,7 @@
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 10px;
+  min-width: 0;
 }
 
 .analyze-page .option-toggle {
@@ -247,6 +269,7 @@
   border: 1px solid var(--lda-border);
   background: var(--lda-surface-2);
   color: var(--lda-text);
+  min-width: 0;
 }
 
 .analyze-page .option-toggle:disabled {
@@ -316,7 +339,7 @@
 }
 
 /* =========================================
-   6) Result area
+   6) Result area (summary + mosaic)
 ========================================= */
 .analyze-page .summary-cards {
   display: grid;
@@ -336,6 +359,7 @@
   padding: 12px 12px;
   background: var(--lda-surface-2);
   border: 1px solid var(--lda-border);
+  min-width: 0;
 }
 
 .analyze-page .summary-card-label {
@@ -350,6 +374,129 @@
   color: var(--lda-text);
   font-weight: 900;
   letter-spacing: -0.01em;
+}
+
+/* Result section */
+.analyze-page .result-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.analyze-page .mosaic-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.analyze-page .result-section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--lda-text);
+}
+
+.analyze-page .mosaic-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.analyze-page .mosaic-meta {
+  font-size: 12px;
+  color: var(--lda-muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  flex: 1 1 auto;
+}
+
+.analyze-page .mosaic-zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  flex: 0 1 320px;
+  margin-left: auto;
+
+  min-width: 220px;
+}
+
+.analyze-page .mosaic-zoom-label,
+.analyze-page .mosaic-zoom-value {
+  font-size: 12px;
+  color: var(--lda-muted);
+  white-space: nowrap;
+}
+
+.analyze-page .mosaic-zoom input[type="range"] {
+  flex: 1;
+  min-width: 140px;
+}
+
+/* 모바일에서는 메타/슬라이더를 줄바꿈해서 안정화 */
+@media (max-width: 520px) {
+  .analyze-page .mosaic-meta {
+    flex: 1 1 100%;
+  }
+
+  .analyze-page .mosaic-zoom {
+    flex: 1 1 100%;
+    margin-left: 0;
+    min-width: 0;
+    justify-content: space-between;
+  }
+
+  .analyze-page .mosaic-zoom input[type="range"] {
+    min-width: 0;
+  }
+}
+
+/* 모자이크 "뷰포트"가 스크롤을 담당한다 */
+.analyze-page .mosaic-viewport {
+  width: 100%;
+  max-width: 100%;
+
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+
+  border-radius: 18px;
+  border: 1px solid var(--lda-border);
+  background: var(--lda-surface-2);
+
+  padding: 10px;
+
+  /* 확대해도 페이지를 밀지 않게 영역 높이는 고정(내부 스크롤) */
+  max-height: 65vh;
+}
+
+/* 그리드는 실제 크기만큼만(페이지 폭을 밀지 않게) */
+.analyze-page .mosaic-grid {
+  display: grid;
+
+  width: max-content;
+  max-width: none;
+
+  /* 작을 때는 가운데 정렬, 클 때는 스크롤로 확인 */
+  margin: 0 auto;
+}
+
+.analyze-page .mosaic-cell {
+  border-radius: 2px;
+}
+
+/* placeholder */
+.analyze-page .result-placeholder {
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--lda-surface-2);
+  border: 1px dashed var(--lda-border);
+  color: var(--lda-muted);
+  font-size: 13px;
 }
 
 /* =========================================

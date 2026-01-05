@@ -7,6 +7,10 @@
 
   color-scheme: light dark;
 
+  /* ===== Tokens ===== */
+  --container-max: 960px;
+  --container-pad: 24px;
+
   --app-bg: #f5f7fb;
   --app-surface: rgba(255, 255, 255, 0.86);
   --app-border: rgba(0, 0, 0, 0.10);
@@ -41,17 +45,26 @@
 
   border-bottom: 1px solid var(--app-border);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+
+  /* iOS safe-area */
+  padding-top: env(safe-area-inset-top);
 }
 
 .app-header-inner {
-  max-width: 960px;
+  max-width: var(--container-max);
   width: 100%;
   margin: 0 auto;
-  padding: 12px 24px;
+
+  /* padding을 변수로 통일 */
+  padding: 12px var(--container-pad);
+
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+
+  /* flex overflow 방지(모바일 줄바꿈 안정화) */
+  min-width: 0;
 }
 
 .app-logo {
@@ -59,14 +72,15 @@
   font-size: 18px;
   letter-spacing: 0.06em;
   color: var(--app-text);
+  white-space: nowrap;
 }
 
 /* Nav */
 .app-nav {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .app-nav-link {
@@ -77,6 +91,9 @@
   text-decoration: none;
   border: 1px solid transparent;
   transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+
+  /* 모바일에서 버튼 높이/폭 안정 */
+  white-space: nowrap;
 }
 
 .app-nav-link:hover {
@@ -91,24 +108,19 @@
   border-color: rgba(255, 255, 255, 0.12);
 }
 
-/* Mobile */
-@media (max-width: 640px) {
-  .app-header-inner {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .app-nav {
-    justify-content: flex-start;
-  }
-}
-
-/* Main */
+/* ===== Main ===== */
 .app-main {
   flex: 1;
-  max-width: 960px;
+  max-width: var(--container-max);
   width: 100%;
   margin: 0 auto;
-  padding: 0px 24px 40px;
+
+  /* 상단 0이라 답답해 보일 수 있어 여백 추가 */
+  padding: 16px var(--container-pad) 40px;
+
+  /* iOS safe-area */
+  padding-left: calc(var(--container-pad) + env(safe-area-inset-left));
+  padding-right: calc(var(--container-pad) + env(safe-area-inset-right));
 }
 
 /* Typography */
@@ -132,4 +144,36 @@
   line-height: 1.7;
   color: var(--app-muted);
   max-width: 600px;
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+  .app-root {
+    /* 모바일에서 좌우 24px는 큼 */
+    --container-pad: 12px;
+  }
+
+  .app-header-inner {
+    /* 기존처럼 column도 가능하지만,
+       모바일 UX는 "로고 + 1줄 Nav(가로스크롤)"이 더 안정적 */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .app-nav {
+    width: 100%;
+    justify-content: flex-start;
+
+    /* wrap 대신 가로 스크롤로 안정화 */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+
+  /* 스크롤바 숨김(보이기 싫을 때) */
+  .app-nav::-webkit-scrollbar {
+    display: none;
+  }
 }
