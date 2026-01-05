@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-/**
- * guide에서 가능한 여러 필드명을 흡수해서
- * (x,y,colorHex) 형태로 렌더 가능한 데이터로 정규화
- */
+/*
+  guide에서 가능한 여러 필드명을 흡수해서
+  (x, y, colorHex) 형태로 렌더 가능한 데이터로 정규화한다
+*/
+
 function pickGridSize(guide) {
   const w =
     guide?.meta?.gridWidth ??
@@ -26,11 +27,14 @@ function pickColorHex(b) {
   return b?.colorHex ?? b?.hex ?? b?.color ?? b?.fill ?? "#E5E7EB";
 }
 
-/**
- * ✅ bricks 우선 → 없으면 groups를 복원
- * - groups[].bricks(기존)
- * - groups[].cells(row/좌표) (추가)
- */
+/*
+  bricks 우선 사용 → 없으면 groups 기반으로 복원한다
+
+  지원 케이스
+  - guide.bricks / guide.mosaic.bricks / guide.result.bricks ...
+  - groups[].bricks
+  - groups[].cells(행 데이터) : ["#RRGGBB", ...] 또는 [{x, colorHex}, ...]
+*/
 function pickBricks(guide, w, h) {
   const direct =
     guide?.bricks ??
@@ -43,11 +47,11 @@ function pickBricks(guide, w, h) {
   const groups = Array.isArray(guide?.groups) ? guide.groups : [];
   if (groups.length === 0) return [];
 
-  // 1) 기존: groups[].bricks
-  const fromGroups = groups.flatMap((g) => (Array.isArray(g?.bricks) ? g.bricks : []));
+  const fromGroups = groups.flatMap((g) =>
+    Array.isArray(g?.bricks) ? g.bricks : []
+  );
   if (fromGroups.length > 0) return fromGroups;
 
-  // 2) 추가: groups[].cells 등 row 데이터 → (x,y,colorHex)로 복원
   const restored = [];
 
   for (let gi = 0; gi < groups.length; gi += 1) {
@@ -62,7 +66,6 @@ function pickBricks(guide, w, h) {
 
     if (!Array.isArray(cells) || cells.length === 0) continue;
 
-    // A) row 배열: ["#RRGGBB", ...]
     if (typeof cells[0] === "string") {
       for (let x = 0; x < Math.min(w, cells.length); x += 1) {
         const colorHex = cells[x];
@@ -72,7 +75,6 @@ function pickBricks(guide, w, h) {
       continue;
     }
 
-    // B) 객체 배열: [{x, hex/color}, ...]
     for (let ci = 0; ci < cells.length; ci += 1) {
       const c = cells[ci];
 
@@ -84,7 +86,12 @@ function pickBricks(guide, w, h) {
       if (x < 0 || cy < 0 || x >= w || cy >= h) continue;
 
       const colorHex =
-        c?.colorHex ?? c?.hex ?? c?.color ?? c?.fill ?? c?.value ?? "#E5E7EB";
+        c?.colorHex ??
+        c?.hex ??
+        c?.color ??
+        c?.fill ??
+        c?.value ??
+        "#E5E7EB";
 
       restored.push({ x, y: cy, colorHex });
     }
@@ -93,11 +100,75 @@ function pickBricks(guide, w, h) {
   return restored;
 }
 
+function clamp(n, min, max) {
+  return Math.min(max, Math.max(min, n));
+}
+
+/*
+  모자이크 영역의 "실제 내부 폭"을 계산한다
+  clientWidth는 padding을 포함하므로, padding을 빼서 그리드가 들어갈 수 있는 폭을 만든다
+*/
+function getInnerWidth(el) {
+  if (!el) return 0;
+  const style = window.getComputedStyle(el);
+  const pl = parseFloat(style.paddingLeft) || 0;
+  const pr = parseFloat(style.paddingRight) || 0;
+  return el.clientWidth - pl - pr;
+}
+
 export default function BrickMosaicPreview({ guide }) {
-  const [cell, setCell] = useState(14);
+  const viewportRef = useRef(null);
+
+  const MIN_CELL = 4;
+  const HARD_MAX = 28;
+  const DEFAULT_CELL = 10;
 
   const { w, h } = useMemo(() => pickGridSize(guide), [guide]);
   const bricks = useMemo(() => pickBricks(guide, w, h), [guide, w, h]);
+
+  const [maxCell, setMaxCell] = useState(HARD_MAX);
+  const [cell, setCell] = useState(DEFAULT_CELL);
+
+  /*
+    핵심: 현재 화면(모자이크 뷰포트)의 폭을 재서,
+    w칸이 절대 화면 밖으로 나가지 않는 최대 cell(px)을 계산한다
+  */
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const innerW = getInnerWidth(el);
+      if (!innerW || !w) return;
+
+      const visibleW = window.visualViewport?.width ?? window.innerWidth ?? innerW;
+      const safeW = Math.min(innerW, visibleW);
+
+      const byWidth = Math.floor(safeW / w);
+      const nextMax = clamp(byWidth, MIN_CELL, HARD_MAX);
+
+      setMaxCell(nextMax);
+    };
+
+    update();
+
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [w]);
+
+  /*
+    maxCell이 바뀌면(모바일/데스크탑 전환, 회전, 창 크기 변경 등)
+    현재 cell 값이 최대를 넘지 않도록 자동으로 보정한다
+  */
+  useEffect(() => {
+    setCell((prev) => clamp(prev, MIN_CELL, maxCell));
+  }, [maxCell]);
 
   const cells = useMemo(() => {
     const arr = new Array(w * h).fill("#F3F4F6");
@@ -120,47 +191,41 @@ export default function BrickMosaicPreview({ guide }) {
 
         <div className="mosaic-controls">
           <span className="mosaic-meta">
-            {w}×{h} · {w * h} cells · filled {bricks.length}
+            {w}×{h} · {w * h}칸 · 채움 {bricks.length}칸
           </span>
 
           <label className="mosaic-zoom">
-            <span>확대</span>
+            <span className="mosaic-zoom-label">확대</span>
             <input
               type="range"
-              min="8"
-              max="22"
+              min={MIN_CELL}
+              max={maxCell}
               value={cell}
-              onChange={(e) => setCell(Number(e.target.value))}
+              onChange={(e) =>
+                setCell(clamp(Number(e.target.value), MIN_CELL, maxCell))
+              }
             />
+            <span className="mosaic-zoom-value">{cell}px</span>
           </label>
         </div>
       </div>
 
       {!hasData ? (
-        <div className="result-placeholder">
-          프리뷰 데이터가 아직 없습니다. (API 응답에 bricks 또는 groups row 데이터가 포함되면 자동 표시됩니다)
-        </div>
+        <div className="result-placeholder">프리뷰 데이터가 아직 없습니다.</div>
       ) : (
-        <div
-          className="mosaic-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${w}, ${cell}px)`,
-            gridTemplateRows: `repeat(${h}, ${cell}px)`,
-            "--cell": `${cell}px`,
-          }}
-        >
-          {cells.map((c, i) => (
-            <div
-              key={i}
-              className="mosaic-cell"
-              style={{
-                background: c,
-                width: `${cell}px`,
-                height: `${cell}px`,
-              }}
-            />
-          ))}
+        <div ref={viewportRef} className="mosaic-viewport">
+          <div
+            className="mosaic-grid"
+            style={{
+              "--cell": `${cell}px`,
+              gridTemplateColumns: `repeat(${w}, var(--cell))`,
+              gridTemplateRows: `repeat(${h}, var(--cell))`,
+            }}
+          >
+            {cells.map((c, i) => (
+              <div key={i} className="mosaic-cell" style={{ background: c }} />
+            ))}
+          </div>
         </div>
       )}
     </section>
