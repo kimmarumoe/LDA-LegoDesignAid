@@ -29,6 +29,14 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
+function isNormalizedApiError(v: unknown): v is NormalizedApiError {
+  return (
+    isRecord(v) &&
+    typeof v.kind === "string" &&
+    typeof v.message === "string"
+  );
+}
+
 function toNumberOrNull(v: unknown): number | null {
   if (typeof v === "number") return Number.isFinite(v) ? v : null;
   if (typeof v === "string") {
@@ -164,7 +172,8 @@ function normalizeAnalyzeOptions(
 
   const hasGrid = typeof normalized.gridSize === "string";
   const hasColors = typeof normalized.colorLimit === "number"; // 0도 true
-  const hasBricks = Array.isArray(normalized.brickTypes) && normalized.brickTypes.length > 0;
+  const hasBricks =
+    Array.isArray(normalized.brickTypes) && normalized.brickTypes.length > 0;
 
   // brickMode 단독이면 의미가 약하므로 null
   if (!hasGrid && !hasColors && !hasBricks) return null;
@@ -172,10 +181,73 @@ function normalizeAnalyzeOptions(
   return normalized;
 }
 
-async function requestJson<T>(
+/**
+ * UI에서 "이 에러가 콜드스타트/일시적 장애일 가능성이 높은지" 판단하는 용도
+ */
+export function isLikelyColdStart(err: unknown): boolean {
+  if (!isNormalizedApiError(err)) return false;
+
+  if (err.kind === "NETWORK" || err.kind === "TIMEOUT") return true;
+
+  if (
+    err.kind === "HTTP_5XX" &&
+    (err.status === 502 || err.status === 503 || err.status === 504)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function shouldRetry(err: NormalizedApiError): boolean {
+  // 사용자가 취소한 요청은 재시도하지 않음
+  if (err.kind === "ABORTED") return false;
+
+  // 네트워크/타임아웃은 대표적인 일시 오류
+  if (err.kind === "NETWORK" || err.kind === "TIMEOUT") return true;
+
+  // Render 콜드스타트에서 자주 나오는 상태코드만 제한적으로 재시도
+  if (
+    err.kind === "HTTP_5XX" &&
+    (err.status === 502 || err.status === 503 || err.status === 504)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function sleepWithAbort(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const id = window.setTimeout(() => resolve(), ms);
+
+    if (!signal) return;
+
+    const onAbort = () => {
+      window.clearTimeout(id);
+      reject({
+        kind: "ABORTED",
+        message: "요청이 취소되었습니다.",
+      } satisfies NormalizedApiError);
+    };
+
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+/**
+ * JSON 요청 1회 실행 (타임아웃/abort/응답표준화)
+ * - SRP: 재시도는 여기서 하지 않는다.
+ */
+async function requestJsonOnce<T>(
   url: string,
   init: RequestInit,
-  timeoutMs = 30000,
+  timeoutMs: number,
   externalSignal?: AbortSignal
 ): Promise<T> {
   const { signal: tSignal, clear } = timeoutSignal(timeoutMs);
@@ -184,10 +256,11 @@ async function requestJson<T>(
 
   if (externalSignal) {
     if (externalSignal.aborted) controller.abort();
-    else
+    else {
       externalSignal.addEventListener("abort", () => controller.abort(), {
         once: true,
       });
+    }
   }
 
   tSignal.addEventListener(
@@ -207,6 +280,7 @@ async function requestJson<T>(
 
     if (!res.ok) {
       let message = `HTTP ${res.status}`;
+
       if (isJson) {
         try {
           const data: any = await res.json();
@@ -218,6 +292,7 @@ async function requestJson<T>(
 
       const kind: NormalizedApiErrorKind =
         res.status >= 500 ? "HTTP_5XX" : "HTTP_4XX";
+
       throw { kind, message, status: res.status } satisfies NormalizedApiError;
     }
 
@@ -250,7 +325,7 @@ async function requestJson<T>(
       } satisfies NormalizedApiError;
     }
 
-    if (err && typeof err === "object" && typeof err.kind === "string") {
+    if (isNormalizedApiError(err)) {
       throw err;
     }
 
@@ -261,6 +336,70 @@ async function requestJson<T>(
   } finally {
     clear();
   }
+}
+
+type RequestRetryOptions = {
+  timeoutMs?: number;
+  retries?: number;        // 추가 재시도 횟수(0이면 단발)
+  baseDelayMs?: number;    // 백오프 시작값
+  maxDelayMs?: number;     // 백오프 상한
+};
+
+/**
+ * JSON 요청 + 재시도(백오프)
+ * - Render 콜드스타트 대응을 위해 제한적인 조건에서만 재시도한다.
+ */
+async function requestJsonWithRetry<T>(
+  url: string,
+  init: RequestInit,
+  externalSignal?: AbortSignal,
+  opts?: RequestRetryOptions
+): Promise<T> {
+  const timeoutMs = opts?.timeoutMs ?? 12000;
+  const retries = opts?.retries ?? 2;
+  const baseDelayMs = opts?.baseDelayMs ?? 700;
+  const maxDelayMs = opts?.maxDelayMs ?? 4000;
+
+  let lastError: NormalizedApiError | null = null;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (externalSignal?.aborted) {
+      throw {
+        kind: "ABORTED",
+        message: "요청이 취소되었습니다.",
+      } satisfies NormalizedApiError;
+    }
+
+    try {
+      return await requestJsonOnce<T>(url, init, timeoutMs, externalSignal);
+    } catch (e) {
+      const err: NormalizedApiError = isNormalizedApiError(e)
+        ? e
+        : ({
+            kind: "NETWORK",
+            message: "네트워크 오류가 발생했습니다.",
+          } satisfies NormalizedApiError);
+
+      lastError = err;
+
+      const canRetry = attempt < retries && shouldRetry(err);
+      if (!canRetry) throw err;
+
+      const backoff = Math.min(baseDelayMs * Math.pow(2, attempt), maxDelayMs);
+      const jitter = Math.floor(Math.random() * 250);
+
+      await sleepWithAbort(backoff + jitter, externalSignal);
+    }
+  }
+
+  // 사실상 도달하지 않지만 타입 안전을 위해
+  throw (
+    lastError ??
+    ({
+      kind: "INVALID_RESPONSE",
+      message: "알 수 없는 오류가 발생했습니다.",
+    } satisfies NormalizedApiError)
+  );
 }
 
 /**
@@ -321,10 +460,15 @@ export async function analyzeGuide(
     form.append("options", JSON.stringify(optionsPayload));
   }
 
-  return requestJson<GuideResponse>(
+  return requestJsonWithRetry<GuideResponse>(
     `${API_BASE_URL}/api/guide/analyze`,
     { method: "POST", body: form },
-    30000,
-    signal
+    signal,
+    {
+      timeoutMs: 12000,
+      retries: 2,
+      baseDelayMs: 700,
+      maxDelayMs: 4000,
+    }
   );
 }
