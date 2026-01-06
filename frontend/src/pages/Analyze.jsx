@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import UploadPanel from "../components/UploadPanel.jsx";
 import BrickGuidePanel from "../components/BrickGuidePanel.jsx";
 import { SAMPLE_GUIDE } from "../sample/sampleGuide.js";
-import { analyzeGuide } from "../api/guideClient";
+import { analyzeGuide, isLikelyColdStart } from "../api/guideClient";
 import { BRICK_TYPES } from "../types/legoGuide";
 import "./Analyze.css";
 
@@ -17,6 +17,9 @@ const COLOR_LIMIT_PRESETS = new Set([0, 8, 16, 24]);
 
 // 자동 모드 프리셋(원하면 여기만 바꾸면 됨)
 const AUTO_BRICK_PRESET = ["1x1", "1x2", "1x3", "2x2", "2x3"];
+
+// 서버 깨우기 안내가 뜨는 지연 기준
+const WAKEUP_HINT_DELAY_MS = 1500;
 
 function toInputValue(input) {
   return typeof input === "object" && input?.target ? input.target.value : input;
@@ -64,6 +67,9 @@ export default function Analyze() {
   const analyzeAbortRef = useRef(null);
   const requestSeqRef = useRef(0);
 
+  // "서버 깨우는 중" 팝업 타이머
+  const wakeupTimerRef = useRef(null);
+
   // 입력 상태
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -87,6 +93,11 @@ export default function Analyze() {
   const [guideSteps, setGuideSteps] = useState([]);
   const [guideStatus, setGuideStatus] = useState("idle"); // idle | running | done | error
   const [guideError, setGuideError] = useState("");
+
+  // 서버 콜드스타트 안내 팝업
+  const [wakeupOpen, setWakeupOpen] = useState(false);
+  const [wakeupMode, setWakeupMode] = useState("waking"); // "waking" | "failed"
+  const [wakeupMessage, setWakeupMessage] = useState("");
 
   function isNormalizedApiError(err) {
     return (
@@ -122,6 +133,19 @@ export default function Analyze() {
     return "분석 중 오류가 발생했어요. 서버 실행/주소(VITE_API_BASE_URL)와 CORS 설정을 확인해주세요.";
   }
 
+  function clearWakeupTimer() {
+    if (wakeupTimerRef.current) {
+      window.clearTimeout(wakeupTimerRef.current);
+      wakeupTimerRef.current = null;
+    }
+  }
+
+  function closeWakeup() {
+    setWakeupOpen(false);
+    setWakeupMode("waking");
+    setWakeupMessage("");
+  }
+
   function resetAllResults() {
     setAnalysisResult(null);
     setAnalysisStatus("idle");
@@ -134,6 +158,10 @@ export default function Analyze() {
   }
 
   function abortAnalyze() {
+    // 팝업/타이머부터 정리 (요청 취소했는데 안내가 남는 것 방지)
+    clearWakeupTimer();
+    closeWakeup();
+
     if (analyzeAbortRef.current) {
       analyzeAbortRef.current.abort();
       analyzeAbortRef.current = null;
@@ -206,12 +234,29 @@ export default function Analyze() {
     resetAllResults();
   };
 
+  const openWakeupWakingIfSlow = () => {
+    // 샘플은 즉시 응답이므로 불필요한 팝업 X
+    if (useSample) return;
+
+    clearWakeupTimer();
+    wakeupTimerRef.current = window.setTimeout(() => {
+      setWakeupMode("waking");
+      setWakeupMessage(
+        "처음 요청은 서버가 깨어나느라 시간이 걸릴 수 있어요. 잠시만 기다려주세요."
+      );
+      setWakeupOpen(true);
+    }, WAKEUP_HINT_DELAY_MS);
+  };
+
   const handleAnalyze = async () => {
     // 새 분석 시작 전 상태 정리
     setAnalysisError("");
     setGuideError("");
     setGuideSteps([]);
     setGuideStatus("idle");
+
+    closeWakeup();
+    clearWakeupTimer();
 
     if (!useSample && !selectedFile) {
       setAnalysisStatus("error");
@@ -227,6 +272,9 @@ export default function Analyze() {
     analyzeAbortRef.current = controller;
 
     setAnalysisStatus("running");
+
+    // 1.5초 이상 걸릴 때만 "서버 깨우는 중" 안내
+    openWakeupWakingIfSlow();
 
     try {
       // legoGuide.ts 계약을 기본으로 구성 (guideClient에서 레거시 키도 흡수 가능)
@@ -250,26 +298,53 @@ export default function Analyze() {
       setAnalysisResult(analysisOnly);
       setAvailableSteps(steps);
       setAnalysisStatus("done");
+
+      // 성공이면 안내 닫기
+      closeWakeup();
     } catch (err) {
       if (seq !== requestSeqRef.current) return;
 
-      const msg = normalizeClientError(err);
       // ABORTED는 보통 에러 표시하지 않음
+      const msg = normalizeClientError(err);
       if (!msg) {
         setAnalysisStatus("idle");
         setAnalysisError("");
+        closeWakeup();
         return;
       }
 
       console.error(err);
+
+      // 콜드스타트 가능성이 높으면 "재시도" 팝업 전환
+      if (!useSample && isLikelyColdStart(err)) {
+        setWakeupMode("failed");
+        setWakeupMessage(
+          "서버가 잠든 상태일 수 있어요. 재시도하면 정상 연결되는 경우가 많아요."
+        );
+        setWakeupOpen(true);
+
+        setAnalysisStatus("error");
+        setAnalysisError("서버 연결이 지연/실패했어요. 잠시 후 재시도해 주세요.");
+        return;
+      }
+
       setAnalysisStatus("error");
       setAnalysisError(msg);
+      closeWakeup();
     } finally {
+      clearWakeupTimer();
+
       // 최신 요청일 때만 ref 정리
       if (seq === requestSeqRef.current) {
         analyzeAbortRef.current = null;
       }
     }
+  };
+
+  const handleWakeupRetry = () => {
+    // 팝업에서 재시도 클릭 시: 동일 분석 다시 실행
+    closeWakeup();
+    handleAnalyze();
   };
 
   const handleGenerateGuide = async () => {
@@ -315,6 +390,14 @@ export default function Analyze() {
 
   return (
     <main className="analyze-page">
+      <ServerWakeupModal
+        open={wakeupOpen}
+        mode={wakeupMode}
+        message={wakeupMessage}
+        onClose={closeWakeup}
+        onRetry={handleWakeupRetry}
+      />
+
       <div className="analyze-container">
         <UploadPanel
           previewUrl={previewUrl}
@@ -350,5 +433,99 @@ export default function Analyze() {
         />
       </div>
     </main>
+  );
+}
+
+/**
+ * 아이콘 없이 텍스트 기반의 콜드스타트 안내 팝업
+ * - mode: "waking" => 기다림 안내
+ * - mode: "failed" => 재시도 안내
+ */
+function ServerWakeupModal({ open, mode, message, onClose, onRetry }) {
+  if (!open) return null;
+
+  const isFailed = mode === "failed";
+  const title = isFailed ? "연결에 실패했어요" : "서버 연결 중";
+
+  // 별도 CSS 파일 없이도 바로 동작하도록 최소 인라인 스타일 사용
+  const overlayStyle = {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.55)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    zIndex: 9999,
+  };
+
+  const cardStyle = {
+    width: "min(420px, 100%)",
+    borderRadius: 14,
+    background: "#141414",
+    border: "1px solid rgba(255,255,255,0.10)",
+    boxShadow: "0 10px 40px rgba(0,0,0,0.35)",
+    padding: "18px 16px",
+  };
+
+  const titleStyle = {
+    fontSize: 16,
+    fontWeight: 700,
+    marginBottom: 8,
+  };
+
+  const descStyle = {
+    fontSize: 14,
+    lineHeight: 1.5,
+    opacity: 0.9,
+    marginBottom: 14,
+    whiteSpace: "pre-line",
+  };
+
+  const actionsStyle = {
+    display: "flex",
+    gap: 8,
+    justifyContent: "flex-end",
+  };
+
+  const btnStyle = {
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "transparent",
+    color: "white",
+    padding: "9px 12px",
+    borderRadius: 10,
+    fontSize: 13,
+    cursor: "pointer",
+  };
+
+  const primaryBtnStyle = {
+    ...btnStyle,
+    border: "1px solid rgba(255,255,255,0.22)",
+    background: "rgba(255,255,255,0.10)",
+  };
+
+  return (
+    <div style={overlayStyle} role="dialog" aria-modal="true" aria-label="server-wakeup">
+      <div style={cardStyle}>
+        <div style={titleStyle}>{title}</div>
+        <div style={descStyle}>
+          {message ||
+            (isFailed
+              ? "서버가 잠든 상태일 수 있어요. 재시도하면 정상 연결되는 경우가 많아요."
+              : "처음 요청은 서버가 깨어나느라 시간이 걸릴 수 있어요. 잠시만 기다려주세요.")}
+        </div>
+
+        <div style={actionsStyle}>
+          {isFailed ? (
+            <button type="button" style={primaryBtnStyle} onClick={onRetry}>
+              재시도
+            </button>
+          ) : null}
+          <button type="button" style={btnStyle} onClick={onClose}>
+            닫기
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
