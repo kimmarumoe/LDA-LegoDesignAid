@@ -5,7 +5,8 @@
   display: flex;
   flex-direction: column;
 
-  color-scheme: light dark;
+  /* ✅ 지금 단계에선 변수 줄이기(폼 컨트롤 예측 가능) */
+  /* color-scheme: light dark; */
 
   /* ===== Tokens ===== */
   --container-max: 960px;
@@ -20,8 +21,13 @@
   --app-shadow: 0 10px 22px rgba(15, 23, 42, 0.10);
 
   background: var(--app-bg);
+
+  /* ✅ clip 단독 대신 hidden fallback 추가 */
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
+/* 다크 토큰 유지 */
 @media (prefers-color-scheme: dark) {
   .app-root {
     --app-bg: #0e1116;
@@ -46,8 +52,10 @@
   border-bottom: 1px solid var(--app-border);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 
-  /* iOS safe-area */
   padding-top: env(safe-area-inset-top);
+
+  /* ✅ 혹시 헤더 내부 요소가 튀어도 문서 폭을 키우지 않게 */
+  overflow-x: hidden;
 }
 
 .app-header-inner {
@@ -55,7 +63,6 @@
   width: 100%;
   margin: 0 auto;
 
-  /* padding을 변수로 통일 */
   padding: 12px var(--container-pad);
 
   display: flex;
@@ -63,8 +70,10 @@
   justify-content: space-between;
   gap: 16px;
 
-  /* flex overflow 방지(모바일 줄바꿈 안정화) */
   min-width: 0;
+
+  /* ✅ 내부 스크롤 요소가 있어도 헤더가 문서 폭을 키우지 않게 */
+  overflow-x: hidden;
 }
 
 .app-logo {
@@ -80,7 +89,9 @@
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+
   min-width: 0;
+  max-width: 100%;
 }
 
 .app-nav-link {
@@ -92,8 +103,10 @@
   border: 1px solid transparent;
   transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
 
-  /* 모바일에서 버튼 높이/폭 안정 */
   white-space: nowrap;
+
+  /* ✅ 가로 스크롤 nav에서 링크가 폭 계산으로 튀지 않게 */
+  flex: 0 0 auto;
 }
 
 .app-nav-link:hover {
@@ -115,15 +128,17 @@
   width: 100%;
   margin: 0 auto;
 
-  /* 상단 0이라 답답해 보일 수 있어 여백 추가 */
   padding: 16px var(--container-pad) 40px;
 
-  /* iOS safe-area */
   padding-left: calc(var(--container-pad) + env(safe-area-inset-left));
   padding-right: calc(var(--container-pad) + env(safe-area-inset-right));
+
+  /* ✅ 내부 컴포넌트가 width 계산 실수해도 문서 폭을 키우지 않게 */
+  min-width: 0;
+  overflow-x: hidden;
 }
 
-/* Typography */
+/* Typography 유지 */
 .section-eyebrow {
   font-size: 11px;
   letter-spacing: 0.18em;
@@ -149,13 +164,10 @@
 /* ===== Mobile ===== */
 @media (max-width: 640px) {
   .app-root {
-    /* 모바일에서 좌우 24px는 큼 */
     --container-pad: 12px;
   }
 
   .app-header-inner {
-    /* 기존처럼 column도 가능하지만,
-       모바일 UX는 "로고 + 1줄 Nav(가로스크롤)"이 더 안정적 */
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
@@ -165,14 +177,15 @@
     width: 100%;
     justify-content: flex-start;
 
-    /* wrap 대신 가로 스크롤로 안정화 */
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 2px;
+
+    /* ✅ 스크롤이 문서로 “번지지” 않게 */
+    overscroll-behavior-x: contain;
   }
 
-  /* 스크롤바 숨김(보이기 싫을 때) */
   .app-nav::-webkit-scrollbar {
     display: none;
   }
