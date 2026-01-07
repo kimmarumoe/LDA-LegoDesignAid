@@ -46,9 +46,13 @@ function toSafeBrickMode(input) {
 
 // BRICK_TYPES 기준으로 필터링 + 1x1 항상 포함
 function normalizeBrickTypes(list) {
-  const allowed = new Set(BRICK_TYPES);
-  const input = Array.isArray(list) ? list : [];
+  const allowedList = Array.isArray(BRICK_TYPES)
+    ? BRICK_TYPES.map((b) => (typeof b === "string" ? b : b?.value)).filter(Boolean)
+    : [];
 
+  const allowed = new Set(allowedList);
+
+  const input = Array.isArray(list) ? list : [];
   const filtered = input
     .map((x) => String(x).trim())
     .filter(Boolean)
@@ -58,6 +62,7 @@ function normalizeBrickTypes(list) {
   if (!unique.includes("1x1")) unique.unshift("1x1");
   return unique;
 }
+
 
 export default function Analyze() {
   // 분석 요청 abort + 최신 요청만 반영하기 위한 ref
