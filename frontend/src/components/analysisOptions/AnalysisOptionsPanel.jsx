@@ -41,7 +41,7 @@ export default function AnalysisOptionsPanel({
         <select
           className="form-select"
           value={String(colorLimit)}
-          onChange={(e) => onChangeColorLimit(e.target.value)}
+          onChange={(e) => onChangeColorLimit(Number(e.target.value))}
           disabled={disabled}
         >
           <option value="0">제한 없음</option>
@@ -56,11 +56,13 @@ export default function AnalysisOptionsPanel({
       </div>
 
       <BrickSizeSelector
-        mode={brickMode}
-        allowed={brickAllowed}
-        onChangeMode={onChangeBrickMode}
-        onChangeAllowed={onChangeBrickAllowed}
-      />
+  disabled={disabled}
+  mode={brickMode}
+  allowed={brickAllowed}
+  onChangeMode={onChangeBrickMode}
+  onChangeAllowed={onChangeBrickAllowed}
+/>
+
     </div>
   );
 }
