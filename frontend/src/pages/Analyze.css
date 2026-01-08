@@ -81,6 +81,12 @@
   min-width: 0;
 }
 
+/* grid item inside results should be allowed to shrink on narrow screens */
+.analyze-page .card {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .analyze-page .panel h2 {
   font-size: 18px;
   font-weight: 700;
@@ -230,6 +236,7 @@
 .analyze-page .mosaic-viewport {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
 
   overflow: auto;
   -webkit-overflow-scrolling: touch;
