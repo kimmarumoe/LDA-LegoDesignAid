@@ -15,19 +15,22 @@ const DEFAULT_OPTIONS = {
 const GRID_PRESETS = new Set(["16x16", "32x32", "48x48"]);
 const COLOR_LIMIT_PRESETS = new Set([0, 8, 16, 24]);
 
-// 자동 모드 프리셋(원하면 여기만 바꾸면 됨)
+// 자동 모드에서 기본으로 사용할 브릭 종류(원하면 이 목록만 바꾸면 됨)
 const AUTO_BRICK_PRESET = ["1x1", "1x2", "1x3", "2x2", "2x3"];
 
+// 이벤트(e)로 들어오든 값(value)로 들어오든 동일하게 처리하기 위한 함수
 function toInputValue(input) {
   return typeof input === "object" && input?.target ? input.target.value : input;
 }
 
+// 그리드 크기는 허용된 값만 유지하고, 그 외는 기본값으로 되돌림
 function toSafeGridSize(input) {
   const raw = toInputValue(input);
   const v = String(raw ?? "").replace(/\s+/g, "").toLowerCase();
   return GRID_PRESETS.has(v) ? v : "16x16";
 }
 
+// 색상 제한도 허용된 값만 유지하고, 그 외는 기본값으로 되돌림
 function toSafeColorLimit(input) {
   const raw = toInputValue(input);
   const n = Number(raw);
@@ -35,16 +38,16 @@ function toSafeColorLimit(input) {
   return COLOR_LIMIT_PRESETS.has(n) ? n : 16;
 }
 
+// 벽돌 모드는 auto/manual만 허용하고, 오타는 manual로 보정
 function toSafeBrickMode(input) {
   const raw = toInputValue(input);
   const v = String(raw ?? "").trim().toLowerCase();
   if (v === "auto" || v === "manual") return v;
-  // 레거시 오타가 들어와도 manual로 보정
-  if (v === "menual") return "manual";
+  if (v === "menual") return "manual"; // 예전 오타 호환
   return "manual";
 }
 
-// BRICK_TYPES 기준으로 필터링 + 1x1 항상 포함
+// BRICK_TYPES 기준으로만 남기고, 중복 제거 + "1x1"은 항상 포함
 function normalizeBrickTypes(list) {
   const allowedList = Array.isArray(BRICK_TYPES)
     ? BRICK_TYPES.map((b) => (typeof b === "string" ? b : b?.value)).filter(Boolean)
@@ -63,10 +66,54 @@ function normalizeBrickTypes(list) {
   return unique;
 }
 
+/*
+  분석 결과에 "요청할 때 사용한 옵션"을 함께 저장한다.
+
+  이유:
+  - 서버가 결과에 옵션 정보를 안 넣어주더라도
+    화면에서 "내가 어떤 옵션으로 분석했는지" 항상 확인할 수 있다.
+  - 나중에 오류가 나도, 어떤 옵션이었는지 바로 추적할 수 있다.
+*/
+function attachRequestOptionsToResult(analysisOnly, requestOptions) {
+  const base = analysisOnly && typeof analysisOnly === "object" ? analysisOnly : {};
+
+  const prevMeta = base.meta && typeof base.meta === "object" ? base.meta : {};
+
+  // gridSize("16x16")에서 가로/세로 값을 대략 추론한다.
+  // 서버가 가로/세로 값을 이미 주면 서버 값을 우선한다.
+  const [wRaw, hRaw] = String(requestOptions?.gridSize ?? "16x16")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .split("x");
+
+  const inferredW = Number.isFinite(Number(wRaw)) ? Number(wRaw) : undefined;
+  const inferredH = Number.isFinite(Number(hRaw)) ? Number(hRaw) : undefined;
+
+  return {
+    ...base,
+    meta: {
+      ...prevMeta,
+
+      // 서버가 주는 값이 있으면 그 값을 사용하고, 없으면 gridSize로 보조한다.
+      gridWidth: prevMeta.gridWidth ?? prevMeta.width ?? inferredW,
+      gridHeight: prevMeta.gridHeight ?? prevMeta.height ?? inferredH,
+
+      // 요청 시 사용한 옵션을 결과에 저장한다.
+      requestOptions: {
+        gridSize: requestOptions?.gridSize,
+        colorLimit: requestOptions?.colorLimit,
+        brickMode: requestOptions?.brickMode,
+        brickTypes: requestOptions?.brickTypes,
+      },
+    },
+  };
+}
 
 export default function Analyze() {
-  // 분석 요청 abort + 최신 요청만 반영하기 위한 ref
+  // 진행 중인 요청을 취소하기 위해 저장해두는 곳
   const analyzeAbortRef = useRef(null);
+
+  // "가장 마지막 요청만 화면에 반영"하기 위한 번호
   const requestSeqRef = useRef(0);
 
   // 입력 상태
@@ -78,16 +125,16 @@ export default function Analyze() {
   const [analysisOptions, setAnalysisOptions] = useState(DEFAULT_OPTIONS);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
 
-  // 브릭 옵션(H-3)
+  // 벽돌 옵션
   const [brickMode, setBrickMode] = useState("manual"); // "auto" | "manual"
   const [brickAllowed, setBrickAllowed] = useState(["1x1"]); // manual 모드에서 사용
 
-  // STEP01 결과
+  // STEP 01 결과
   const [analysisResult, setAnalysisResult] = useState(null);
   const [analysisStatus, setAnalysisStatus] = useState("idle"); // idle | running | done | error
   const [analysisError, setAnalysisError] = useState("");
 
-  // STEP02 결과(steps)
+  // STEP 02 결과(steps)
   const [availableSteps, setAvailableSteps] = useState([]);
   const [guideSteps, setGuideSteps] = useState([]);
   const [guideStatus, setGuideStatus] = useState("idle"); // idle | running | done | error
@@ -108,7 +155,7 @@ export default function Analyze() {
         case "TIMEOUT":
           return "요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.";
         case "NETWORK":
-          return "네트워크 오류가 발생했습니다. 서버 주소(VITE_API_BASE_URL)와 CORS, 서버 실행 상태를 확인해주세요.";
+          return "네트워크 오류가 발생했습니다. 서버 주소(VITE_API_BASE_URL)와 서버 실행 상태를 확인해주세요.";
         case "HTTP_4XX":
           return err.message || "요청이 올바르지 않습니다. 입력/파일을 확인해주세요.";
         case "HTTP_5XX":
@@ -116,7 +163,8 @@ export default function Analyze() {
         case "INVALID_RESPONSE":
           return "서버 응답 형식이 올바르지 않습니다. 서버 로그를 확인해주세요.";
         case "ABORTED":
-          // 사용자 의도 중단은 보통 에러로 보여주지 않는 편이 UX가 좋음
+          // 사용자가 옵션/파일을 바꾸면 기존 요청은 취소될 수 있다.
+          // 이 경우는 오류 메시지를 보여주지 않는다.
           return "";
         default:
           return err.message || "알 수 없는 오류가 발생했습니다.";
@@ -124,7 +172,7 @@ export default function Analyze() {
     }
 
     if (err instanceof Error) return err.message || "오류가 발생했습니다.";
-    return "분석 중 오류가 발생했어요. 서버 실행/주소(VITE_API_BASE_URL)와 CORS 설정을 확인해주세요.";
+    return "분석 중 오류가 발생했습니다. 서버 실행 상태를 확인해주세요.";
   }
 
   function resetAllResults() {
@@ -143,7 +191,7 @@ export default function Analyze() {
       analyzeAbortRef.current.abort();
       analyzeAbortRef.current = null;
     }
-    // 이전 요청이 늦게 도착해도 반영되지 않도록 시퀀스를 올림
+    // 이전 요청이 늦게 도착해도 반영되지 않게 번호를 올린다.
     requestSeqRef.current += 1;
   }
 
@@ -161,7 +209,7 @@ export default function Analyze() {
     return normalizeBrickTypes(brickAllowed);
   }
 
-  // 컴포넌트 언마운트 시 진행중 요청 중단
+  // 화면을 벗어나면 진행 중 요청을 끊는다.
   useEffect(() => {
     return () => abortAnalyze();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -234,8 +282,8 @@ export default function Analyze() {
     setAnalysisStatus("running");
 
     try {
-      // legoGuide.ts 계약을 기본으로 구성 (guideClient에서 레거시 키도 흡수 가능)
-      const optionsPayload = {
+      // 서버로 보낼 옵션을 한 곳에서 만든다.
+      const requestOptions = {
         gridSize: analysisOptions.gridSize,
         colorLimit: analysisOptions.colorLimit, // 0(제한 없음) 포함
         brickMode, // auto | manual
@@ -244,22 +292,26 @@ export default function Analyze() {
 
       const payload = useSample
         ? SAMPLE_GUIDE
-        : await analyzeGuide(selectedFile, optionsPayload, controller.signal);
+        : await analyzeGuide(selectedFile, requestOptions, controller.signal);
 
-      // 최신 요청이 아니면 반영하지 않음
+      // 최신 요청이 아니면 반영하지 않는다.
       if (seq !== requestSeqRef.current) return;
 
       const analysisOnly = extractAnalysisOnly(payload);
       const steps = normalizeSteps(payload?.steps);
 
-      setAnalysisResult(analysisOnly);
+      // 요청 옵션을 결과에 함께 저장해서, 화면에서 언제든 확인 가능하게 한다.
+      const enrichedResult = attachRequestOptionsToResult(analysisOnly, requestOptions);
+
+      setAnalysisResult(enrichedResult);
       setAvailableSteps(steps);
       setAnalysisStatus("done");
     } catch (err) {
       if (seq !== requestSeqRef.current) return;
 
       const msg = normalizeClientError(err);
-      // ABORTED는 보통 에러 표시하지 않음
+
+      // 취소된 요청은 오류로 보여주지 않는다.
       if (!msg) {
         setAnalysisStatus("idle");
         setAnalysisError("");
@@ -291,12 +343,12 @@ export default function Analyze() {
     setGuideStatus("running");
 
     try {
-      // 현재는 STEP01 payload에 steps가 있는 샘플/임시 구조만 지원
-      // 추후 /api/guide/steps 연동 시 여기만 교체하면 됨
+      // 지금은 STEP01 결과에 steps가 이미 포함된 경우만 표시한다.
+      // 나중에 steps 생성 API가 생기면 여기만 바꾸면 된다.
       if (!availableSteps || availableSteps.length === 0) {
         setGuideStatus("error");
         setGuideError(
-          "현재 steps 데이터가 없어요.\n샘플 모드를 사용하거나, steps 생성 API(/api/guide/steps) 연동을 추가해주세요."
+          "현재 조립 단계 정보가 없습니다.\n샘플 모드를 사용하거나, 조립 단계 생성 API 연동이 필요합니다."
         );
         return;
       }
