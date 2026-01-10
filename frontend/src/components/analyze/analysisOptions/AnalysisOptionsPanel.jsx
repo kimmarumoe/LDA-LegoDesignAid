@@ -56,13 +56,12 @@ export default function AnalysisOptionsPanel({
       </div>
 
       <BrickSizeSelector
-  disabled={disabled}
-  mode={brickMode}
-  allowed={brickAllowed}
-  onChangeMode={onChangeBrickMode}
-  onChangeAllowed={onChangeBrickAllowed}
-/>
-
+        disabled={disabled}
+        mode={brickMode}
+        allowed={brickAllowed}
+        onChangeMode={onChangeBrickMode}
+        onChangeAllowed={onChangeBrickAllowed}
+      />
     </div>
   );
 }
