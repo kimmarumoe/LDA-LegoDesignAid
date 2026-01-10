@@ -346,38 +346,59 @@ export default function Analyze() {
 };
 
 
-  const handleGenerateGuide = async () => {
-    setGuideError("");
+ const handleGenerateGuide = async () => {
+  const startedAt = Date.now();
 
-    if (analysisStatus !== "done") {
+  // "생성중..."이 너무 빨리 사라지지 않게 최소 표시 시간을 보장
+  const waitMinLoadingIfNeeded = async () => {
+    const elapsed = Date.now() - startedAt;
+    const remain = MIN_LOADING_MS - elapsed;
+    if (remain > 0) await sleep(remain);
+  };
+
+  setGuideError("");
+
+  // STEP 01이 완료되지 않았다면 STEP 02는 진행할 수 없음
+  if (analysisStatus !== "done") {
+    setGuideStatus("error");
+    setGuideError("먼저 STEP 01 분석을 완료해주세요.");
+    return;
+  }
+
+  // 이미 조립 가이드가 만들어졌다면 다시 만들지 않음
+  if (guideStatus === "done" && guideSteps.length > 0) return;
+
+  // 여기서부터 사용자에게 "생성중..." 상태를 보여줌
+  setGuideStatus("running");
+
+  try {
+    // 현재 구조에서는 steps 데이터가 있어야만 화면에 조립 단계를 보여줄 수 있음
+    // (나중에 steps 생성 API를 붙이면 여기만 서버 호출로 바뀌게 됨)
+    if (!availableSteps || availableSteps.length === 0) {
+      await waitMinLoadingIfNeeded();
+
       setGuideStatus("error");
-      setGuideError("먼저 STEP 01 분석을 완료해주세요.");
+      setGuideError(
+        "현재 조립 단계 정보가 없습니다. 샘플 모드를 사용하거나, steps 생성 API 연동이 필요합니다."
+      );
       return;
     }
 
-    if (guideStatus === "done" && guideSteps.length > 0) return;
+    // 빠르게 끝나더라도 '생성중...'이 잠깐은 보이도록 대기
+    await waitMinLoadingIfNeeded();
 
-    setGuideStatus("running");
+    setGuideSteps(availableSteps);
+    setGuideStatus("done");
+  } catch (err) {
+    console.error(err);
 
-    try {
-      // 지금은 STEP01 결과에 steps가 이미 포함된 경우만 표시한다.
-      // 나중에 steps 생성 API가 생기면 여기만 바꾸면 된다.
-      if (!availableSteps || availableSteps.length === 0) {
-        setGuideStatus("error");
-        setGuideError(
-          "현재 조립 단계 정보가 없습니다.\n샘플 모드를 사용하거나, 조립 단계 생성 API 연동이 필요합니다."
-        );
-        return;
-      }
+    await waitMinLoadingIfNeeded();
 
-      setGuideSteps(availableSteps);
-      setGuideStatus("done");
-    } catch (err) {
-      console.error(err);
-      setGuideStatus("error");
-      setGuideError(normalizeClientError(err));
-    }
-  };
+    setGuideStatus("error");
+    setGuideError(normalizeClientError(err));
+  }
+};
+
 
   const handleReset = () => {
     abortAnalyze();
