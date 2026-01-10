@@ -16,9 +16,12 @@ export type NormalizedApiError = {
   status?: number;
 };
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:9000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:9000";
 
+/*
+  일정 시간이 지나도 응답이 없으면 요청을 중단시키기 위한 장치다.
+  사용자는 "멈춘 것 같은 느낌"을 받지 않게 된다.
+*/
 function timeoutSignal(ms: number) {
   const controller = new AbortController();
   const id = window.setTimeout(() => controller.abort(), ms);
@@ -54,15 +57,15 @@ function toStringArrayOrNull(v: unknown): string[] | null {
 
 type BrickModePreset = "auto" | "manual";
 
-/**
- * "menual" 같은 레거시 오타까지 흡수해서 "manual"로 정규화
- */
+/*
+  예전 오타("menual")가 들어와도 "manual"로 바꿔서 처리한다.
+*/
 function toBrickModeOrNull(v: unknown): BrickModePreset | null {
   if (typeof v !== "string") return null;
   const s = v.trim().toLowerCase();
   if (s === "auto") return "auto";
   if (s === "manual") return "manual";
-  if (s === "menual") return "manual"; // 오타 호환
+  if (s === "menual") return "manual";
   return null;
 }
 
@@ -76,17 +79,32 @@ function acceptGridSize(v: unknown): AnalyzeOptions["gridSize"] | null {
 }
 
 function acceptColorLimit(n: number): AnalyzeOptions["colorLimit"] | null {
-  // legoGuide.ts 기준: 0 | 8 | 16 | 24
   if (n === 0 || n === 8 || n === 16 || n === 24) {
     return n as AnalyzeOptions["colorLimit"];
   }
   return null;
 }
 
+/*
+  BRICK_TYPES가 문자열 배열일 수도 있고,
+  { value: "1x1" } 같은 객체 배열일 수도 있으므로
+  둘 다 처리해서 "허용 목록"을 만든다.
+*/
+function getAllowedBrickValues(): string[] {
+  if (!Array.isArray(BRICK_TYPES)) return [];
+
+  return BRICK_TYPES
+    .map((b: any) => (typeof b === "string" ? b : b?.value))
+    .filter((v: unknown): v is string => typeof v === "string" && v.trim().length > 0)
+    .map((v) => v.trim());
+}
+
 function filterBrickTypes(values: string[]): BrickType[] {
-  const allowed = new Set<string>(BRICK_TYPES as readonly string[]);
+  const allowed = new Set<string>(getAllowedBrickValues());
+
   const cleaned = values.map((x) => x.trim()).filter(Boolean);
   const filtered = cleaned.filter((x) => allowed.has(x));
+
   return Array.from(new Set(filtered)) as BrickType[];
 }
 
@@ -95,28 +113,24 @@ function ensure1x1(bricks: BrickType[]): BrickType[] {
   return (["1x1", ...bricks] as BrickType[]);
 }
 
-/**
- * UI/서버 표기(gridSize vs grid_size 등)를 흡수해서 정규화한다.
- *
- * 정책:
- * - 0(제한 없음)은 falsy이므로 typeof === "number"로 체크
- * - brickMode만 단독이면 의미가 약하므로 null 반환(의도/주석 일치)
- * - brickTypes는 BRICK_TYPES 기준으로 필터링
- * - 수동 선택이 들어오면 1x1 강제 포함
- */
-function normalizeAnalyzeOptions(
-  options: unknown
-): Partial<AnalyzeOptions> | null {
+/*
+  프론트에서 넘어오는 옵션을 "서버가 이해하기 쉬운 형태"로 정리한다.
+
+  왜 필요한가:
+  - 필드 이름이 gridSize / grid_size 처럼 달라질 수 있다.
+  - 숫자도 문자열로 올 수 있다.
+  - brickTypes도 다른 이름으로 올 수 있다.
+
+  결과:
+  - 가능한 값만 남기고, 사용할 수 있는 형태로 정리해서 반환한다.
+*/
+function normalizeAnalyzeOptions(options: unknown): Partial<AnalyzeOptions> | null {
   if (!options) return null;
   if (!isRecord(options)) return null;
 
   const gridCandidate =
-    options.gridSize ??
-    options.grid_size ??
-    options.grid ??
-    options.gridSizePreset;
+    options.gridSize ?? options.grid_size ?? options.grid ?? options.gridSizePreset;
 
-  // colorLimit / maxColors 모두 흡수
   const colorsCandidate =
     options.colorLimit ??
     options.color_limit ??
@@ -125,12 +139,8 @@ function normalizeAnalyzeOptions(
     options.colors;
 
   const brickModeCandidate =
-    options.brickMode ??
-    options.brick_mode ??
-    options.mode ??
-    options.bricksMode;
+    options.brickMode ?? options.brick_mode ?? options.mode ?? options.bricksMode;
 
-  // brickTypes / allowedBricks / brick_types 등 모두 흡수
   const brickTypesCandidate =
     options.brickTypes ??
     options.brick_types ??
@@ -157,21 +167,30 @@ function normalizeAnalyzeOptions(
   if (raw) {
     const bricks = filterBrickTypes(raw);
     if (bricks.length > 0) {
-      // brickTypes가 있으면 사실상 manual 성격이므로 1x1 포함
       normalized.brickTypes = ensure1x1(bricks);
     }
   }
 
   const hasGrid = typeof normalized.gridSize === "string";
-  const hasColors = typeof normalized.colorLimit === "number"; // 0도 true
+  const hasColors = typeof normalized.colorLimit === "number"; // 0도 포함하기 위해 number로 체크
   const hasBricks = Array.isArray(normalized.brickTypes) && normalized.brickTypes.length > 0;
 
-  // brickMode 단독이면 의미가 약하므로 null
+  /*
+    grid/color/brickTypes 중 아무 것도 없으면
+    서버에 보낼 "의미 있는 옵션"이 없다고 판단한다.
+    (brickMode만 단독으로 보내는 것은 의미가 약하다고 보고 제외)
+  */
   if (!hasGrid && !hasColors && !hasBricks) return null;
 
   return normalized;
 }
 
+/*
+  서버 요청 공통 함수.
+  - 타임아웃 적용
+  - JSON 응답인지 확인
+  - 실패 시 표준 에러 형태로 변환해서 던짐
+*/
 async function requestJson<T>(
   url: string,
   init: RequestInit,
@@ -179,6 +198,7 @@ async function requestJson<T>(
   externalSignal?: AbortSignal
 ): Promise<T> {
   const { signal: tSignal, clear } = timeoutSignal(timeoutMs);
+
   const controller = new AbortController();
   let timedOut = false;
 
@@ -207,24 +227,24 @@ async function requestJson<T>(
 
     if (!res.ok) {
       let message = `HTTP ${res.status}`;
+
       if (isJson) {
         try {
           const data: any = await res.json();
           message = data?.detail || data?.message || data?.error || message;
         } catch {
-          // ignore
+          // 실패 응답을 JSON으로 읽지 못하면 기본 메시지를 사용한다.
         }
       }
 
-      const kind: NormalizedApiErrorKind =
-        res.status >= 500 ? "HTTP_5XX" : "HTTP_4XX";
+      const kind: NormalizedApiErrorKind = res.status >= 500 ? "HTTP_5XX" : "HTTP_4XX";
       throw { kind, message, status: res.status } satisfies NormalizedApiError;
     }
 
     if (!isJson) {
       throw {
         kind: "INVALID_RESPONSE",
-        message: "서버 응답이 JSON이 아닙니다.",
+        message: "서버 응답이 JSON 형식이 아닙니다.",
       } satisfies NormalizedApiError;
     }
 
@@ -233,45 +253,35 @@ async function requestJson<T>(
     } catch {
       throw {
         kind: "INVALID_RESPONSE",
-        message: "서버 JSON 파싱에 실패했습니다.",
+        message: "서버 JSON 읽기에 실패했습니다.",
       } satisfies NormalizedApiError;
     }
   } catch (err: any) {
     if (err?.name === "AbortError") {
       if (timedOut) {
-        throw {
-          kind: "TIMEOUT",
-          message: "요청 시간이 초과되었습니다.",
-        } satisfies NormalizedApiError;
+        throw { kind: "TIMEOUT", message: "요청 시간이 초과되었습니다." } satisfies NormalizedApiError;
       }
-      throw {
-        kind: "ABORTED",
-        message: "요청이 취소되었습니다.",
-      } satisfies NormalizedApiError;
+      throw { kind: "ABORTED", message: "요청이 취소되었습니다." } satisfies NormalizedApiError;
     }
 
     if (err && typeof err === "object" && typeof err.kind === "string") {
       throw err;
     }
 
-    throw {
-      kind: "NETWORK",
-      message: "네트워크 오류가 발생했습니다.",
-    } satisfies NormalizedApiError;
+    throw { kind: "NETWORK", message: "네트워크 오류가 발생했습니다." } satisfies NormalizedApiError;
   } finally {
     clear();
   }
 }
 
-/**
- * 이미지 파일로 가이드 분석: /api/guide/analyze
- *
- * 전송 정책(호환 중심):
- * - options(JSON) + Form 필드 동시 전송
- * - colorLimit: color_limit + max_colors 둘 다 전송(서버 키 차이 흡수)
- * - brickMode: brick_mode 전송
- * - brickTypes: brick_types + allowed_bricks (JSON 문자열) 전송
- */
+/*
+  이미지 파일을 서버에 보내 분석 결과를 받는다.
+
+  보내는 방식:
+  - FormData를 사용한다(이미지 업로드에 적합)
+  - options는 JSON 문자열로도 보내고,
+    서버가 어떤 이름을 기대하든 맞추기 위해 개별 필드로도 같이 보낸다.
+*/
 export async function analyzeGuide(
   imageFile: File,
   options?: unknown,
@@ -295,7 +305,6 @@ export async function analyzeGuide(
       optionsPayload.color_limit = normalized.colorLimit;
       optionsPayload.colorLimit = normalized.colorLimit;
 
-      // 레거시 호환
       optionsPayload.max_colors = normalized.colorLimit;
       optionsPayload.maxColors = normalized.colorLimit;
 
@@ -315,7 +324,7 @@ export async function analyzeGuide(
 
       const json = JSON.stringify(normalized.brickTypes);
       form.append("brick_types", json);
-      form.append("allowed_bricks", json); // 서버 키 차이 흡수
+      form.append("allowed_bricks", json);
     }
 
     form.append("options", JSON.stringify(optionsPayload));
