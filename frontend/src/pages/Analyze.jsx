@@ -4,10 +4,16 @@ import UploadPanel from "../components/analyze/upload/UploadPanel.jsx";
 import BrickGuidePanel from "../components/analyze/guide/BrickGuidePanel.jsx";
 import { SAMPLE_GUIDE } from "../sample/sampleGuide.js";
 import { analyzeGuide } from "../api/guideClient";
-import { BRICK_TYPES } from "../types/legoGuide";
+import {
+  AUTO_BRICK_PRESET,
+  normalizeBrickTypes,
+  toSafeBrickMode,
+  toSafeColorLimit,
+  toSafeGridSize,
+} from "../utils/analyzeOptions";
 import "./Analyze.css";
 
-const MIN_LOADING_MS = 250; // 200~350ms 추천(너무 길면 느려보임)
+const MIN_LOADING_MS = 250; // 너무 짧으면 깜빡이고, 너무 길면 느려보여서 중간값 사용
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const DEFAULT_OPTIONS = {
@@ -15,75 +21,18 @@ const DEFAULT_OPTIONS = {
   colorLimit: 16, // 0 | 8 | 16 | 24 (0 = 제한 없음)
 };
 
-const GRID_PRESETS = new Set(["16x16", "32x32", "48x48"]);
-const COLOR_LIMIT_PRESETS = new Set([0, 8, 16, 24]);
-
-// 자동 모드에서 기본으로 사용할 브릭 종류(원하면 이 목록만 바꾸면 됨)
-const AUTO_BRICK_PRESET = ["1x1", "1x2", "1x3", "2x2", "2x3"];
-
-// 이벤트(e)로 들어오든 값(value)로 들어오든 동일하게 처리하기 위한 함수
-function toInputValue(input) {
-  return typeof input === "object" && input?.target ? input.target.value : input;
-}
-
-// 그리드 크기는 허용된 값만 유지하고, 그 외는 기본값으로 되돌림
-function toSafeGridSize(input) {
-  const raw = toInputValue(input);
-  const v = String(raw ?? "").replace(/\s+/g, "").toLowerCase();
-  return GRID_PRESETS.has(v) ? v : "16x16";
-}
-
-// 색상 제한도 허용된 값만 유지하고, 그 외는 기본값으로 되돌림
-function toSafeColorLimit(input) {
-  const raw = toInputValue(input);
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return 16;
-  return COLOR_LIMIT_PRESETS.has(n) ? n : 16;
-}
-
-// 벽돌 모드는 auto/manual만 허용하고, 오타는 manual로 보정
-function toSafeBrickMode(input) {
-  const raw = toInputValue(input);
-  const v = String(raw ?? "").trim().toLowerCase();
-  if (v === "auto" || v === "manual") return v;
-  if (v === "menual") return "manual"; // 예전 오타 호환
-  return "manual";
-}
-
-// BRICK_TYPES 기준으로만 남기고, 중복 제거 + "1x1"은 항상 포함
-function normalizeBrickTypes(list) {
-  const allowedList = Array.isArray(BRICK_TYPES)
-    ? BRICK_TYPES.map((b) => (typeof b === "string" ? b : b?.value)).filter(Boolean)
-    : [];
-
-  const allowed = new Set(allowedList);
-
-  const input = Array.isArray(list) ? list : [];
-  const filtered = input
-    .map((x) => String(x).trim())
-    .filter(Boolean)
-    .filter((x) => allowed.has(x));
-
-  const unique = Array.from(new Set(filtered));
-  if (!unique.includes("1x1")) unique.unshift("1x1");
-  return unique;
-}
-
 /*
-  분석 결과에 "요청할 때 사용한 옵션"을 함께 저장한다.
+  분석 결과에 “요청할 때 사용한 옵션”을 같이 저장한다.
 
   이유:
-  - 서버가 결과에 옵션 정보를 안 넣어주더라도
-    화면에서 "내가 어떤 옵션으로 분석했는지" 항상 확인할 수 있다.
-  - 나중에 오류가 나도, 어떤 옵션이었는지 바로 추적할 수 있다.
+  - 서버가 옵션 정보를 결과에 안 넣어줘도, 화면에서 어떤 설정으로 분석했는지 알 수 있다.
+  - 나중에 오류가 생겨도, 어떤 옵션으로 요청했는지 추적이 쉽다.
 */
 function attachRequestOptionsToResult(analysisOnly, requestOptions) {
   const base = analysisOnly && typeof analysisOnly === "object" ? analysisOnly : {};
-
   const prevMeta = base.meta && typeof base.meta === "object" ? base.meta : {};
 
-  // gridSize("16x16")에서 가로/세로 값을 대략 추론한다.
-  // 서버가 가로/세로 값을 이미 주면 서버 값을 우선한다.
+  // gridSize("16x16")에서 가로/세로 값을 추측한다. (서버 값이 있으면 서버 값을 우선)
   const [wRaw, hRaw] = String(requestOptions?.gridSize ?? "16x16")
     .toLowerCase()
     .replace(/\s+/g, "")
@@ -96,12 +45,8 @@ function attachRequestOptionsToResult(analysisOnly, requestOptions) {
     ...base,
     meta: {
       ...prevMeta,
-
-      // 서버가 주는 값이 있으면 그 값을 사용하고, 없으면 gridSize로 보조한다.
       gridWidth: prevMeta.gridWidth ?? prevMeta.width ?? inferredW,
       gridHeight: prevMeta.gridHeight ?? prevMeta.height ?? inferredH,
-
-      // 요청 시 사용한 옵션을 결과에 저장한다.
       requestOptions: {
         gridSize: requestOptions?.gridSize,
         colorLimit: requestOptions?.colorLimit,
@@ -113,10 +58,10 @@ function attachRequestOptionsToResult(analysisOnly, requestOptions) {
 }
 
 export default function Analyze() {
-  // 진행 중인 요청을 취소하기 위해 저장해두는 곳
+  // 진행 중인 요청을 취소하기 위한 저장소
   const analyzeAbortRef = useRef(null);
 
-  // "가장 마지막 요청만 화면에 반영"하기 위한 번호
+  // “마지막 요청만 화면에 반영”하기 위한 번호
   const requestSeqRef = useRef(0);
 
   // 입력 상태
@@ -128,7 +73,7 @@ export default function Analyze() {
   const [analysisOptions, setAnalysisOptions] = useState(DEFAULT_OPTIONS);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
 
-  // 벽돌 옵션
+  // 브릭 옵션
   const [brickMode, setBrickMode] = useState("manual"); // "auto" | "manual"
   const [brickAllowed, setBrickAllowed] = useState(["1x1"]); // manual 모드에서 사용
 
@@ -166,8 +111,7 @@ export default function Analyze() {
         case "INVALID_RESPONSE":
           return "서버 응답 형식이 올바르지 않습니다. 서버 로그를 확인해주세요.";
         case "ABORTED":
-          // 사용자가 옵션/파일을 바꾸면 기존 요청은 취소될 수 있다.
-          // 이 경우는 오류 메시지를 보여주지 않는다.
+          // 옵션/파일 변경 등으로 의도적으로 취소된 경우는 메시지를 안 보여준다.
           return "";
         default:
           return err.message || "알 수 없는 오류가 발생했습니다.";
@@ -263,142 +207,128 @@ export default function Analyze() {
   };
 
   const handleAnalyze = async () => {
-  const startedAt = Date.now();
+    const startedAt = Date.now();
 
-  // 새 분석 시작 전 상태 정리
-  setAnalysisError("");
-  setGuideError("");
-  setGuideSteps([]);
-  setGuideStatus("idle");
+    // 새 분석 시작 전 상태 정리
+    setAnalysisError("");
+    setGuideError("");
+    setGuideSteps([]);
+    setGuideStatus("idle");
 
-  if (!useSample && !selectedFile) {
-    setAnalysisStatus("error");
-    setAnalysisError("실데이터 모드에서는 이미지를 업로드해야 분석할 수 있어요.");
-    return;
-  }
-
-  // 이전 요청 중단 + 최신 요청 번호 확보
-  abortAnalyze();
-  const seq = requestSeqRef.current;
-
-  const controller = new AbortController();
-  analyzeAbortRef.current = controller;
-
-  setAnalysisStatus("running");
-
-  // 로딩 문구가 너무 빨리 사라지지 않게 최소 표시 시간을 보장
-  const waitMinLoadingIfNeeded = async () => {
-    const elapsed = Date.now() - startedAt;
-    const remain = MIN_LOADING_MS - elapsed;
-    if (remain > 0) {
-      await sleep(remain);
+    if (!useSample && !selectedFile) {
+      setAnalysisStatus("error");
+      setAnalysisError("실데이터 모드에서는 이미지를 업로드해야 분석할 수 있어요.");
+      return;
     }
-  };
 
-  try {
-    const optionsPayload = {
+    // 이전 요청 중단 + 최신 요청 번호 확보
+    abortAnalyze();
+    const seq = requestSeqRef.current;
+
+    const controller = new AbortController();
+    analyzeAbortRef.current = controller;
+
+    setAnalysisStatus("running");
+
+    // 로딩 문구가 너무 빨리 사라지지 않게 최소 표시 시간을 보장
+    const waitMinLoadingIfNeeded = async () => {
+      const elapsed = Date.now() - startedAt;
+      const remain = MIN_LOADING_MS - elapsed;
+      if (remain > 0) await sleep(remain);
+    };
+
+    // “요청에 쓰는 옵션 묶음” (요청 직전에 한 번만 만들어서 사용)
+    const requestOptions = {
       gridSize: analysisOptions.gridSize,
       colorLimit: analysisOptions.colorLimit, // 0(제한 없음) 포함
       brickMode,
       brickTypes: getBrickTypesToSend(),
     };
 
-    const payload = useSample
-      ? SAMPLE_GUIDE
-      : await analyzeGuide(selectedFile, optionsPayload, controller.signal);
+    try {
+      const payload = useSample
+        ? SAMPLE_GUIDE
+        : await analyzeGuide(selectedFile, requestOptions, controller.signal);
 
-    // 최신 요청이 아니면 반영하지 않음
-    if (seq !== requestSeqRef.current) return;
+      // 최신 요청이 아니면 반영하지 않음
+      if (seq !== requestSeqRef.current) return;
 
-    await waitMinLoadingIfNeeded();
-    if (seq !== requestSeqRef.current) return;
+      await waitMinLoadingIfNeeded();
+      if (seq !== requestSeqRef.current) return;
 
-    const analysisOnly = extractAnalysisOnly(payload);
-    const steps = normalizeSteps(payload?.steps);
+      const analysisOnly = extractAnalysisOnly(payload);
+      const analysisWithOptions = attachRequestOptionsToResult(analysisOnly, requestOptions);
+      const steps = normalizeSteps(payload?.steps);
 
-    setAnalysisResult(analysisOnly);
-    setAvailableSteps(steps);
-    setAnalysisStatus("done");
-  } catch (err) {
-    if (seq !== requestSeqRef.current) return;
+      setAnalysisResult(analysisWithOptions);
+      setAvailableSteps(steps);
+      setAnalysisStatus("done");
+    } catch (err) {
+      if (seq !== requestSeqRef.current) return;
 
-    const msg = normalizeClientError(err);
+      const msg = normalizeClientError(err);
 
-    // 사용자가 옵션을 바꾸는 등 의도적으로 취소된 요청은 에러로 안 보여줌
-    if (!msg) {
-      setAnalysisStatus("idle");
-      setAnalysisError("");
-      return;
+      // 의도적으로 취소된 요청은 에러로 안 보여줌
+      if (!msg) {
+        setAnalysisStatus("idle");
+        setAnalysisError("");
+        return;
+      }
+
+      await waitMinLoadingIfNeeded();
+      if (seq !== requestSeqRef.current) return;
+
+      console.error(err);
+      setAnalysisStatus("error");
+      setAnalysisError(msg);
+    } finally {
+      if (seq === requestSeqRef.current) {
+        analyzeAbortRef.current = null;
+      }
     }
-
-    await waitMinLoadingIfNeeded();
-    if (seq !== requestSeqRef.current) return;
-
-    console.error(err);
-    setAnalysisStatus("error");
-    setAnalysisError(msg);
-  } finally {
-    // 최신 요청일 때만 ref 정리
-    if (seq === requestSeqRef.current) {
-      analyzeAbortRef.current = null;
-    }
-  }
-};
-
-
- const handleGenerateGuide = async () => {
-  const startedAt = Date.now();
-
-  // "생성중..."이 너무 빨리 사라지지 않게 최소 표시 시간을 보장
-  const waitMinLoadingIfNeeded = async () => {
-    const elapsed = Date.now() - startedAt;
-    const remain = MIN_LOADING_MS - elapsed;
-    if (remain > 0) await sleep(remain);
   };
 
-  setGuideError("");
+  const handleGenerateGuide = async () => {
+    const startedAt = Date.now();
 
-  // STEP 01이 완료되지 않았다면 STEP 02는 진행할 수 없음
-  if (analysisStatus !== "done") {
-    setGuideStatus("error");
-    setGuideError("먼저 STEP 01 분석을 완료해주세요.");
-    return;
-  }
+    const waitMinLoadingIfNeeded = async () => {
+      const elapsed = Date.now() - startedAt;
+      const remain = MIN_LOADING_MS - elapsed;
+      if (remain > 0) await sleep(remain);
+    };
 
-  // 이미 조립 가이드가 만들어졌다면 다시 만들지 않음
-  if (guideStatus === "done" && guideSteps.length > 0) return;
+    setGuideError("");
 
-  // 여기서부터 사용자에게 "생성중..." 상태를 보여줌
-  setGuideStatus("running");
-
-  try {
-    // 현재 구조에서는 steps 데이터가 있어야만 화면에 조립 단계를 보여줄 수 있음
-    // (나중에 steps 생성 API를 붙이면 여기만 서버 호출로 바뀌게 됨)
-    if (!availableSteps || availableSteps.length === 0) {
-      await waitMinLoadingIfNeeded();
-
+    if (analysisStatus !== "done") {
       setGuideStatus("error");
-      setGuideError(
-        "현재 조립 단계 정보가 없습니다. 샘플 모드를 사용하거나, steps 생성 API 연동이 필요합니다."
-      );
+      setGuideError("먼저 STEP 01 분석을 완료해주세요.");
       return;
     }
 
-    // 빠르게 끝나더라도 '생성중...'이 잠깐은 보이도록 대기
-    await waitMinLoadingIfNeeded();
+    if (guideStatus === "done" && guideSteps.length > 0) return;
 
-    setGuideSteps(availableSteps);
-    setGuideStatus("done");
-  } catch (err) {
-    console.error(err);
+    setGuideStatus("running");
 
-    await waitMinLoadingIfNeeded();
+    try {
+      if (!availableSteps || availableSteps.length === 0) {
+        await waitMinLoadingIfNeeded();
+        setGuideStatus("error");
+        setGuideError(
+          "현재 조립 단계 정보가 없습니다. 샘플 모드를 사용하거나, steps 생성 API 연동이 필요합니다."
+        );
+        return;
+      }
 
-    setGuideStatus("error");
-    setGuideError(normalizeClientError(err));
-  }
-};
-
+      await waitMinLoadingIfNeeded();
+      setGuideSteps(availableSteps);
+      setGuideStatus("done");
+    } catch (err) {
+      console.error(err);
+      await waitMinLoadingIfNeeded();
+      setGuideStatus("error");
+      setGuideError(normalizeClientError(err));
+    }
+  };
 
   const handleReset = () => {
     abortAnalyze();
