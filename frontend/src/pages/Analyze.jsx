@@ -7,6 +7,9 @@ import { analyzeGuide } from "../api/guideClient";
 import { BRICK_TYPES } from "../types/legoGuide";
 import "./Analyze.css";
 
+const MIN_LOADING_MS = 250; // 200~350ms 추천(너무 길면 느려보임)
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 const DEFAULT_OPTIONS = {
   gridSize: "16x16", // "16x16" | "32x32" | "48x48"
   colorLimit: 16, // 0 | 8 | 16 | 24 (0 = 제한 없음)
@@ -260,74 +263,88 @@ export default function Analyze() {
   };
 
   const handleAnalyze = async () => {
-    // 새 분석 시작 전 상태 정리
-    setAnalysisError("");
-    setGuideError("");
-    setGuideSteps([]);
-    setGuideStatus("idle");
+  const startedAt = Date.now();
 
-    if (!useSample && !selectedFile) {
-      setAnalysisStatus("error");
-      setAnalysisError("실데이터 모드에서는 이미지를 업로드해야 분석할 수 있어요.");
+  // 새 분석 시작 전 상태 정리
+  setAnalysisError("");
+  setGuideError("");
+  setGuideSteps([]);
+  setGuideStatus("idle");
+
+  if (!useSample && !selectedFile) {
+    setAnalysisStatus("error");
+    setAnalysisError("실데이터 모드에서는 이미지를 업로드해야 분석할 수 있어요.");
+    return;
+  }
+
+  // 이전 요청 중단 + 최신 요청 번호 확보
+  abortAnalyze();
+  const seq = requestSeqRef.current;
+
+  const controller = new AbortController();
+  analyzeAbortRef.current = controller;
+
+  setAnalysisStatus("running");
+
+  // 로딩 문구가 너무 빨리 사라지지 않게 최소 표시 시간을 보장
+  const waitMinLoadingIfNeeded = async () => {
+    const elapsed = Date.now() - startedAt;
+    const remain = MIN_LOADING_MS - elapsed;
+    if (remain > 0) {
+      await sleep(remain);
+    }
+  };
+
+  try {
+    const optionsPayload = {
+      gridSize: analysisOptions.gridSize,
+      colorLimit: analysisOptions.colorLimit, // 0(제한 없음) 포함
+      brickMode,
+      brickTypes: getBrickTypesToSend(),
+    };
+
+    const payload = useSample
+      ? SAMPLE_GUIDE
+      : await analyzeGuide(selectedFile, optionsPayload, controller.signal);
+
+    // 최신 요청이 아니면 반영하지 않음
+    if (seq !== requestSeqRef.current) return;
+
+    await waitMinLoadingIfNeeded();
+    if (seq !== requestSeqRef.current) return;
+
+    const analysisOnly = extractAnalysisOnly(payload);
+    const steps = normalizeSteps(payload?.steps);
+
+    setAnalysisResult(analysisOnly);
+    setAvailableSteps(steps);
+    setAnalysisStatus("done");
+  } catch (err) {
+    if (seq !== requestSeqRef.current) return;
+
+    const msg = normalizeClientError(err);
+
+    // 사용자가 옵션을 바꾸는 등 의도적으로 취소된 요청은 에러로 안 보여줌
+    if (!msg) {
+      setAnalysisStatus("idle");
+      setAnalysisError("");
       return;
     }
 
-    // 이전 요청 중단 + 최신 요청 번호 확보
-    abortAnalyze();
-    const seq = requestSeqRef.current;
+    await waitMinLoadingIfNeeded();
+    if (seq !== requestSeqRef.current) return;
 
-    const controller = new AbortController();
-    analyzeAbortRef.current = controller;
-
-    setAnalysisStatus("running");
-
-    try {
-      // 서버로 보낼 옵션을 한 곳에서 만든다.
-      const requestOptions = {
-        gridSize: analysisOptions.gridSize,
-        colorLimit: analysisOptions.colorLimit, // 0(제한 없음) 포함
-        brickMode, // auto | manual
-        brickTypes: getBrickTypesToSend(),
-      };
-
-      const payload = useSample
-        ? SAMPLE_GUIDE
-        : await analyzeGuide(selectedFile, requestOptions, controller.signal);
-
-      // 최신 요청이 아니면 반영하지 않는다.
-      if (seq !== requestSeqRef.current) return;
-
-      const analysisOnly = extractAnalysisOnly(payload);
-      const steps = normalizeSteps(payload?.steps);
-
-      // 요청 옵션을 결과에 함께 저장해서, 화면에서 언제든 확인 가능하게 한다.
-      const enrichedResult = attachRequestOptionsToResult(analysisOnly, requestOptions);
-
-      setAnalysisResult(enrichedResult);
-      setAvailableSteps(steps);
-      setAnalysisStatus("done");
-    } catch (err) {
-      if (seq !== requestSeqRef.current) return;
-
-      const msg = normalizeClientError(err);
-
-      // 취소된 요청은 오류로 보여주지 않는다.
-      if (!msg) {
-        setAnalysisStatus("idle");
-        setAnalysisError("");
-        return;
-      }
-
-      console.error(err);
-      setAnalysisStatus("error");
-      setAnalysisError(msg);
-    } finally {
-      // 최신 요청일 때만 ref 정리
-      if (seq === requestSeqRef.current) {
-        analyzeAbortRef.current = null;
-      }
+    console.error(err);
+    setAnalysisStatus("error");
+    setAnalysisError(msg);
+  } finally {
+    // 최신 요청일 때만 ref 정리
+    if (seq === requestSeqRef.current) {
+      analyzeAbortRef.current = null;
     }
-  };
+  }
+};
+
 
   const handleGenerateGuide = async () => {
     setGuideError("");
@@ -404,6 +421,7 @@ export default function Analyze() {
           guideError={guideError}
           guideSteps={guideSteps}
           onGenerateGuide={handleGenerateGuide}
+          onRetryAnalyze={handleAnalyze}
         />
       </div>
     </main>
