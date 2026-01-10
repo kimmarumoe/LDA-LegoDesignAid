@@ -1,32 +1,41 @@
 import { useEffect, useMemo, useState } from "react";
 import BrickMosaicPreview from "./BrickMosaicPreview.jsx";
 
-/**
- * BrickGuidePanel
- * - 분석 결과(요약/팔레트/프리뷰 선택 노출) 표시
- * - 조립 가이드(steps) 표시
- * - 표시 UI만 담당 (SRP)
- */
+/*
+  BrickGuidePanel
+  - STEP 01: 분석 결과(요약/팔레트/미리보기)
+  - STEP 02: 조립 가이드(steps)
+  - 이 컴포넌트는 "보여주기" 중심이고, 실제 요청은 바깥에서 실행한다.
+*/
 export default function BrickGuidePanel({
   analysisStatus,
   analysisError,
   analysisResult,
+
   guideStatus,
   guideError,
   guideSteps,
+
   onGenerateGuide,
+
+  // 선택 옵션: STEP 01을 다시 시도할 수 있게 바깥에서 함수를 넘겨받는다.
+  onRetryAnalyze,
 }) {
   const [showPreview, setShowPreview] = useState(false);
   const [showAllPalette, setShowAllPalette] = useState(false);
 
+  const isAnalyzeRunning = analysisStatus === "running";
   const isAnalyzeDone = analysisStatus === "done";
+  const showAnalyzeError = analysisStatus === "error" && Boolean(analysisError);
+
   const isGuideRunning = guideStatus === "running";
   const isGuideDone =
     guideStatus === "done" && Array.isArray(guideSteps) && guideSteps.length > 0;
+  const showGuideError = guideStatus === "error" && Boolean(guideError);
 
   const summary = analysisResult?.summary;
 
-  // 핵심: summaryView 선언 (없어서 에러 났던 부분)
+  // 서버에서 summary 필드명이 조금 달라도 최대한 읽어서 보여준다.
   const summaryView = useMemo(() => {
     const s = summary ?? {};
     return {
@@ -38,6 +47,7 @@ export default function BrickGuidePanel({
   }, [summary]);
 
   useEffect(() => {
+    // 분석이 끝나기 전에는 토글 UI를 자동으로 닫아둔다.
     if (analysisStatus !== "done") {
       setShowPreview(false);
       setShowAllPalette(false);
@@ -49,6 +59,7 @@ export default function BrickGuidePanel({
     if (!Array.isArray(raw) || raw.length === 0) return [];
 
     const map = new Map();
+
     for (const p of raw) {
       const hex = p?.hex ?? p?.color;
       if (!hex) continue;
@@ -74,10 +85,17 @@ export default function BrickGuidePanel({
     ? paletteSummary
     : paletteSummary.slice(0, paletteLimit);
 
+  // STEP 02 버튼 활성화 규칙: 분석 완료 + 가이드 생성중이 아니고 + 아직 완료가 아닐 때
   const canClickStep2 = isAnalyzeDone && !isGuideRunning && !isGuideDone;
 
+  const canRetryAnalyze =
+    typeof onRetryAnalyze === "function" && !isAnalyzeRunning;
+
+  const canRetryGuide =
+    typeof onGenerateGuide === "function" && isAnalyzeDone && !isGuideRunning;
+
   return (
-    <section className="panel guide-panel">
+    <section className="panel guide-panel" aria-busy={isAnalyzeRunning || isGuideRunning}>
       <h2>2. 브릭 분석 & 조립 가이드</h2>
       <p className="panel-desc">
         STEP 01에서 요약/팔레트를 확인하고, STEP 02에서 조립 순서를 생성하세요.
@@ -86,10 +104,35 @@ export default function BrickGuidePanel({
       <div style={{ marginTop: 12 }}>
         <h3 style={{ margin: "8px 0" }}>STEP 01. 분석 결과</h3>
 
-        {analysisStatus === "running" && <p>분석중...</p>}
+        {analysisStatus === "running" && (
+          <p aria-live="polite">분석 중입니다. 잠시만 기다려주세요.</p>
+        )}
 
-        {analysisStatus === "error" && analysisError && (
-          <div className="error-box">{analysisError}</div>
+        {showAnalyzeError && (
+          <div
+            className="error-box"
+            role="alert"
+            style={{ display: "grid", gap: 10 }}
+          >
+            <div>{analysisError}</div>
+
+            {canRetryAnalyze && (
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={onRetryAnalyze}
+                  disabled={!canRetryAnalyze}
+                  aria-disabled={!canRetryAnalyze}
+                >
+                  다시 시도
+                </button>
+                <div style={{ fontSize: 12, opacity: 0.85 }}>
+                  서버가 꺼져 있었다면 서버를 켠 뒤 다시 시도해 주세요.
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {isAnalyzeDone && analysisResult && (
@@ -203,7 +246,6 @@ export default function BrickGuidePanel({
                             gap: 10,
                             padding: 10,
                             borderRadius: 12,
-                            // 라이트에서도 이상하지 않게(토큰 쓰는 게 베스트)
                             background: "var(--lda-surface-2)",
                             border: "1px solid var(--lda-border)",
                           }}
@@ -241,7 +283,7 @@ export default function BrickGuidePanel({
       <div style={{ marginTop: 18 }}>
         <h3 style={{ margin: "8px 0" }}>STEP 02. 조립 가이드 생성</h3>
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <button
             type="button"
             className="btn-primary"
@@ -257,9 +299,31 @@ export default function BrickGuidePanel({
           )}
         </div>
 
-        {guideStatus === "error" && guideError && (
-          <div className="error-box" style={{ marginTop: 12 }}>
-            {guideError}
+        {showGuideError && (
+          <div
+            className="error-box"
+            role="alert"
+            style={{ marginTop: 12, display: "grid", gap: 10 }}
+          >
+            <div>{guideError}</div>
+
+            {canRetryGuide && (
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={onGenerateGuide}
+                  disabled={!canRetryGuide}
+                  aria-disabled={!canRetryGuide}
+                >
+                  다시 시도
+                </button>
+
+                <div style={{ fontSize: 12, opacity: 0.85 }}>
+                  조립 단계 데이터가 없다면 샘플 모드로 확인하거나, steps 생성 API 연동이 필요할 수 있어요.
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import AnalysisOptionsPanel from "./analysisOptions/AnalysisOptionsPanel.jsx";
 import "./UploadPanel.css";
 
@@ -29,6 +29,16 @@ export default function UploadPanel({
 }) {
   const lastObjectUrlRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const isRunning = analysisStatus === "running";
+  const canAnalyze = useSample || hasFile;
+
+  const optionSummary = useMemo(() => {
+    const colorText = Number(colorLimit) === 0 ? "제한 없음" : `${colorLimit}색`;
+    return `${gridSize} · ${colorText}`;
+  }, [gridSize, colorLimit]);
+
+  const showAnalyzeError = analysisStatus === "error" && Boolean(analysisError);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -63,15 +73,12 @@ export default function UploadPanel({
     if (typeof onReset === "function") onReset();
   };
 
-  const isRunning = analysisStatus === "running";
-  const canAnalyze = useSample || hasFile;
-
-  const optionSummary = `${gridSize} · ${
-    Number(colorLimit) === 0 ? "제한 없음" : `${colorLimit}색`
-  }`;
+  const handleRetryAnalyze = () => {
+    if (typeof onAnalyze === "function") onAnalyze();
+  };
 
   return (
-    <section className="panel upload-panel">
+    <section className="panel upload-panel" aria-busy={isRunning}>
       <h2>1. 이미지/디자인 업로드</h2>
       <p className="panel-desc">레고로 만들고 싶은 이미지를 선택하세요.</p>
 
@@ -98,10 +105,7 @@ export default function UploadPanel({
             />
           </label>
 
-          <span
-            className="upload-filename"
-            style={{ opacity: useSample ? 0.55 : 1 }}
-          >
+          <span className="upload-filename" style={{ opacity: useSample ? 0.55 : 1 }}>
             {hasFile ? fileName : "선택된 파일 없음"}
           </span>
         </div>
@@ -116,9 +120,7 @@ export default function UploadPanel({
           >
             <span className="option-toggle__title">분석 옵션</span>
             <span className="option-toggle__summary">{optionSummary}</span>
-            <span className="option-toggle__chev">
-              {isOptionsOpen ? "▲" : "▼"}
-            </span>
+            <span className="option-toggle__chev">{isOptionsOpen ? "▲" : "▼"}</span>
           </button>
 
           <span className="option-hint">
@@ -146,9 +148,47 @@ export default function UploadPanel({
           </p>
         )}
 
-        {analysisStatus === "error" && analysisError && (
-          <div className="error-box" style={{ marginTop: 12 }}>
-            {analysisError}
+        {/* 로딩 상태는 사용자에게 "진행 중"임을 알려주는 영역 */}
+        {analysisStatus === "running" && (
+          <p style={{ marginTop: 12 }} aria-live="polite">
+            분석 중입니다. 잠시만 기다려주세요.
+          </p>
+        )}
+
+        {/* 실패 상태는 "무슨 문제인지 + 다음 행동(재시도)"까지 제공 */}
+        {showAnalyzeError && (
+          <div
+            className="error-box"
+            role="alert"
+            style={{ marginTop: 12, display: "grid", gap: 10 }}
+          >
+            <div>{analysisError}</div>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleRetryAnalyze}
+                disabled={isRunning || !canAnalyze}
+                aria-disabled={isRunning || !canAnalyze}
+              >
+                다시 시도
+              </button>
+
+              <button
+                type="button"
+                className="btn-reset"
+                onClick={handleResetClick}
+                disabled={isRunning}
+                aria-disabled={isRunning}
+              >
+                초기화
+              </button>
+            </div>
+
+            <div style={{ fontSize: 12, opacity: 0.85 }}>
+              서버가 꺼져 있었다면 서버를 켠 뒤 다시 시도해 주세요.
+            </div>
           </div>
         )}
       </div>
@@ -165,6 +205,7 @@ export default function UploadPanel({
           className="btn-primary"
           onClick={onAnalyze}
           disabled={isRunning || !canAnalyze}
+          aria-disabled={isRunning || !canAnalyze}
         >
           {isRunning ? "분석중..." : "분석하기"}
         </button>
@@ -174,6 +215,7 @@ export default function UploadPanel({
           className="btn-reset"
           onClick={handleResetClick}
           disabled={isRunning}
+          aria-disabled={isRunning}
           aria-label="분석 상태 초기화"
         >
           초기화
