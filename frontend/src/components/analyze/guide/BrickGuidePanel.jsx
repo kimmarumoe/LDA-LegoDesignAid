@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import BrickMosaicPreview from "./BrickMosaicPreview.jsx";
+import BrickMosaicPreview from "../../BrickMosaicPreview.jsx";
 
 /*
   BrickGuidePanel
