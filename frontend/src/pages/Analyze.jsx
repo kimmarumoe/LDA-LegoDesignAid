@@ -1,7 +1,7 @@
 // frontend/src/pages/Analyze.jsx
 import { useEffect, useRef, useState } from "react";
-import UploadPanel from "../components/UploadPanel.jsx";
-import BrickGuidePanel from "../components/BrickGuidePanel.jsx";
+import UploadPanel from "../components/analyze/upload/UploadPanel.jsx";
+import BrickGuidePanel from "../components/analyze/guide/BrickGuidePanel.jsx";
 import { SAMPLE_GUIDE } from "../sample/sampleGuide.js";
 import { analyzeGuide } from "../api/guideClient";
 import { BRICK_TYPES } from "../types/legoGuide";

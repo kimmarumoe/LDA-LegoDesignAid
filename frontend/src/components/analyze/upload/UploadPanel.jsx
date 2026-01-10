@@ -1,5 +1,5 @@
 import { useMemo, useRef } from "react";
-import AnalysisOptionsPanel from "./analysisOptions/AnalysisOptionsPanel.jsx";
+import AnalysisOptionsPanel from "../../analysisOptions/AnalysisOptionsPanel.jsx";
 import "./UploadPanel.css";
 
 export default function UploadPanel({
