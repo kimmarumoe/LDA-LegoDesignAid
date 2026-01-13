@@ -234,7 +234,7 @@ export default function BrickGuidePanel({
                     }}
                   >
                     {paletteToRender.map((p, idx) => {
-                      const color = p.hex ?? "#999999";
+                      const color = p.hex ?? "var(--lda-muted-2)";
                       const count = p.count ?? "-";
 
                       return (

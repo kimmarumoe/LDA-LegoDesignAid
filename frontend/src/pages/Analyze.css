@@ -1,29 +1,6 @@
 /* frontend/src/pages/Analyze.css */
 
 /* =========================================
-   0) Theme tokens (Home 톤에 맞춤)
-========================================= */
-.analyze-page {
-  --lda-bg: #faf7f2;
-  --lda-surface: #ffffff;
-  --lda-surface-2: rgba(0, 0, 0, 0.03);
-
-  --lda-text: #1a1a1a;
-  --lda-muted: #666;
-
-  --lda-border: rgba(0, 0, 0, 0.08);
-  --lda-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-
-  --lda-control-bg: #ffffff;
-  --lda-control-border: rgba(0, 0, 0, 0.18);
-
-  --lda-brand: #2c7873;
-  --lda-brand-weak: rgba(44, 120, 115, 0.12);
-  --lda-brand-border: rgba(44, 120, 115, 0.30);
-  --lda-focus: rgba(44, 120, 115, 0.28);
-}
-
-/* =========================================
    1) Page layout
 ========================================= */
 .analyze-page {
