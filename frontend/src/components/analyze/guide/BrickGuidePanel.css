@@ -6,7 +6,7 @@
 .palette-panel {
   margin-top: 1.5rem;
   padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--lda-border);
 }
 
 /* 팔레트 안에서만 적용되는 헤더/제목/설명 */
@@ -26,12 +26,12 @@
 .palette-panel .panel-desc {
   margin: 0.25rem 0 0.5rem;
   font-size: 0.82rem;
-  color: #4b5563;
+  color: var(--lda-muted);
 }
 
 .palette-total {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--lda-muted-2);
 }
 
 /* ===== 팔레트 그리드 ===== */
@@ -51,8 +51,8 @@
   gap: 0.5rem;
   padding: 0.55rem 0.65rem;
   border-radius: 0.75rem;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid var(--lda-border);
+  background: var(--lda-surface);
   cursor: pointer;
   text-align: left;
   transition:
@@ -63,15 +63,15 @@
 }
 
 .palette-item:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 1px 3px rgb(15 23 42 / 0.08);
+  border-color: var(--lda-accent);
+  box-shadow: var(--lda-shadow-subtle);
   transform: translateY(-1px);
 }
 
 .palette-item.is-active {
-  border-color: #2563eb;
-  background: #eff6ff;
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.4);
+  border-color: var(--lda-accent-strong);
+  background: var(--lda-accent-weak);
+  box-shadow: 0 0 0 1px var(--lda-accent-border);
 }
 
 /* ===== 색상칩 ===== */
@@ -80,7 +80,7 @@
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--lda-border);
   flex-shrink: 0;
 }
 
@@ -101,19 +101,19 @@
 .palette-name {
   font-size: 0.85rem;
   font-weight: 500;
-  color: #111827;
+  color: var(--lda-text-strong);
 }
 
 .palette-ratio {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--lda-muted-2);
 }
 
 .palette-count {
   display: block;
   margin-top: 0.1rem;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--lda-muted-2);
 }
 
 .mosaic-head {
@@ -132,7 +132,7 @@
 
 .mosaic-meta {
   font-size: 12px;
-  opacity: 0.75;
+  color: var(--lda-muted-2);
 }
 
 .mosaic-zoom {
@@ -140,16 +140,16 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  opacity: 0.85;
+  color: var(--lda-muted);
 }
 
 .mosaic-grid {
   display: grid;
   gap: 2px;
   padding: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--lda-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--lda-surface);
   overflow: auto;
   max-width: 100%;
 }
@@ -159,4 +159,3 @@
   height: var(--cell);
   border-radius: 2px;
 }
-

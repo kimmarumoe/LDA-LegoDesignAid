@@ -24,18 +24,18 @@
 .sample-card {
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: var(--lda-surface);
   border-radius: 20px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--lda-border);
   padding: 16px;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--lda-shadow-card);
 }
 
 /* 썸네일 */
 .sample-thumb {
   border-radius: 16px;
   overflow: hidden;
-  background: #f3f4f6;
+  background: var(--lda-surface-3);
   margin-bottom: 12px;
   aspect-ratio: 4 / 3;
   display: flex;
@@ -56,10 +56,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px dashed #d1d5db;
+  border: 1px dashed var(--lda-border-strong);
   border-radius: 16px;
   font-size: 0.85rem;
-  color: #9ca3af;
+  color: var(--lda-muted-2);
 }
 
 .sample-thumb-placeholder-label {
@@ -75,13 +75,13 @@
   margin: 0 0 4px;
   font-size: 1.05rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--lda-text-strong);
 }
 
 .sample-card-desc {
   margin: 0 0 10px;
   font-size: 0.9rem;
-  color: #4b5563;
+  color: var(--lda-muted);
 }
 
 /* 메타 정보 */
@@ -101,12 +101,12 @@
 
 .sample-meta-item dt {
   font-weight: 500;
-  color: #6b7280;
+  color: var(--lda-muted-2);
 }
 
 .sample-meta-item dd {
   margin: 0;
-  color: #111827;
+  color: var(--lda-text-strong);
 }
 
 /* 태그 */
@@ -121,14 +121,14 @@
   font-size: 0.8rem;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #eff6ff;
-  color: #1d4ed8;
+  background: var(--lda-accent-weak);
+  color: var(--lda-accent-strong);
 }
 
 /* 카드 하단 */
 .sample-card-footer {
   margin-top: 12px;
-  border-top: 1px dashed #e5e7eb;
+  border-top: 1px dashed var(--lda-border);
   padding-top: 10px;
 }
 
@@ -139,7 +139,7 @@
 .sample-card-hint {
   margin: 6px 0 0;
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--lda-muted-2);
 }
 
 /* 반응형 */

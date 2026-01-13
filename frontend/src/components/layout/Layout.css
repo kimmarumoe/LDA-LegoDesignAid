@@ -12,32 +12,11 @@
   --container-max: 960px;
   --container-pad: 24px;
 
-  --app-bg: #f5f7fb;
-  --app-surface: rgba(255, 255, 255, 0.86);
-  --app-border: rgba(0, 0, 0, 0.10);
-  --app-text: #111827;
-  --app-muted: #4b5563;
-
-  --app-shadow: 0 10px 22px rgba(15, 23, 42, 0.10);
-
-  background: var(--app-bg);
+  background: var(--lda-bg);
 
   /* ✅ clip 단독 대신 hidden fallback 추가 */
   overflow-x: hidden;
   overflow-x: clip;
-}
-
-/* 다크 토큰 유지 */
-@media (prefers-color-scheme: dark) {
-  .app-root {
-    --app-bg: #0e1116;
-    --app-surface: rgba(20, 26, 34, 0.88);
-    --app-border: rgba(255, 255, 255, 0.10);
-    --app-text: rgba(255, 255, 255, 0.92);
-    --app-muted: rgba(255, 255, 255, 0.64);
-
-    --app-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
-  }
 }
 
 /* ===== Header ===== */
@@ -46,11 +25,11 @@
   top: 0;
   z-index: 50;
 
-  background: var(--app-surface);
+  background: var(--lda-surface-glass);
   backdrop-filter: blur(12px);
 
-  border-bottom: 1px solid var(--app-border);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--lda-border);
+  box-shadow: var(--lda-shadow);
 
   padding-top: env(safe-area-inset-top);
 
@@ -80,7 +59,7 @@
   font-weight: 900;
   font-size: 18px;
   letter-spacing: 0.06em;
-  color: var(--app-text);
+  color: var(--lda-text);
   white-space: nowrap;
 }
 
@@ -98,7 +77,7 @@
   font-size: 14px;
   padding: 6px 12px;
   border-radius: 999px;
-  color: var(--app-muted);
+  color: var(--lda-muted);
   text-decoration: none;
   border: 1px solid transparent;
   transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
@@ -110,15 +89,15 @@
 }
 
 .app-nav-link:hover {
-  background: rgba(15, 118, 110, 0.10);
-  border-color: rgba(15, 118, 110, 0.18);
+  background: var(--lda-brand-weak);
+  border-color: var(--lda-brand-border);
   transform: translateY(-1px);
 }
 
 .app-nav-link-active {
-  background: #0f766e;
-  color: #f9fafb;
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--lda-brand-strong);
+  color: var(--lda-on-brand);
+  border-color: var(--lda-brand-border);
 }
 
 /* ===== Main ===== */
@@ -143,21 +122,21 @@
   font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(148, 163, 184, 0.95);
+  color: var(--lda-muted-2);
 }
 
 .section-title {
   margin: 0;
   font-size: 22px;
   font-weight: 800;
-  color: var(--app-text);
+  color: var(--lda-text);
 }
 
 .section-desc {
   margin: 2px 0 0;
   font-size: 14px;
   line-height: 1.7;
-  color: var(--app-muted);
+  color: var(--lda-muted);
   max-width: 600px;
 }
 

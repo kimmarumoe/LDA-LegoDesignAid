@@ -6,18 +6,6 @@
   box-sizing: border-box;
 }
 
-:root {
-  --app-bg: #f5f6f8;
-  --app-text: #111827;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --app-bg: #0e1116;
-    --app-text: rgba(255, 255, 255, 0.92);
-  }
-}
-
 html,
 body {
   margin: 0;
@@ -29,14 +17,27 @@ body {
 body {
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  background: var(--app-bg);
-  color: var(--app-text);
+  background: var(--lda-bg);
+  color: var(--lda-text);
 }
 
 #root {
   width: 100%;
   min-height: 100vh;
   overflow-x: hidden;
+}
+
+input,
+select,
+textarea {
+  color: var(--lda-control-text);
+  background: var(--lda-control-bg);
+  border-color: var(--lda-control-border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--lda-control-placeholder);
 }
 
 /* 미디어는 항상 컨테이너 밖으로 못 나가게 */

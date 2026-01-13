@@ -24,7 +24,7 @@ function pickGridSize(guide) {
 }
 
 function pickColorHex(b) {
-  return b?.colorHex ?? b?.hex ?? b?.color ?? b?.fill ?? "#E5E7EB";
+  return b?.colorHex ?? b?.hex ?? b?.color ?? b?.fill ?? "var(--lda-grid-empty)";
 }
 
 /*
@@ -91,7 +91,7 @@ function pickBricks(guide, w, h) {
         c?.color ??
         c?.fill ??
         c?.value ??
-        "#E5E7EB";
+        "var(--lda-grid-empty)";
 
       restored.push({ x, y: cy, colorHex });
     }
@@ -171,7 +171,7 @@ export default function BrickMosaicPreview({ guide }) {
   }, [maxCell]);
 
   const cells = useMemo(() => {
-    const arr = new Array(w * h).fill("#F3F4F6");
+    const arr = new Array(w * h).fill("var(--lda-grid-empty)");
     for (const b of bricks) {
       const x = Number(b?.x);
       const y = Number(b?.y);
