@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import UploadPanel from "../components/analyze/upload/UploadPanel.jsx";
 import BrickGuidePanel from "../components/analyze/guide/BrickGuidePanel.jsx";
 import { SAMPLE_GUIDE } from "../sample/sampleGuide.js";
-import { analyzeGuide } from "../api/guideClient";
+import { analyzeGuide, buildGuideSteps } from "../api/guideClient";
 import {
   AUTO_BRICK_PRESET,
   normalizeBrickTypes,
@@ -13,26 +13,18 @@ import {
 } from "../utils/analyzeOptions";
 import "./Analyze.css";
 
-const MIN_LOADING_MS = 250; // 너무 짧으면 깜빡이고, 너무 길면 느려보여서 중간값 사용
+const MIN_LOADING_MS = 250;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const DEFAULT_OPTIONS = {
-  gridSize: "16x16", // "16x16" | "32x32" | "48x48"
-  colorLimit: 16, // 0 | 8 | 16 | 24 (0 = 제한 없음)
+  gridSize: "16x16",
+  colorLimit: 16, // 0 = 제한 없음
 };
 
-/*
-  분석 결과에 “요청할 때 사용한 옵션”을 같이 저장한다.
-
-  이유:
-  - 서버가 옵션 정보를 결과에 안 넣어줘도, 화면에서 어떤 설정으로 분석했는지 알 수 있다.
-  - 나중에 오류가 생겨도, 어떤 옵션으로 요청했는지 추적이 쉽다.
-*/
 function attachRequestOptionsToResult(analysisOnly, requestOptions) {
   const base = analysisOnly && typeof analysisOnly === "object" ? analysisOnly : {};
   const prevMeta = base.meta && typeof base.meta === "object" ? base.meta : {};
 
-  // gridSize("16x16")에서 가로/세로 값을 추측한다. (서버 값이 있으면 서버 값을 우선)
   const [wRaw, hRaw] = String(requestOptions?.gridSize ?? "16x16")
     .toLowerCase()
     .replace(/\s+/g, "")
@@ -58,11 +50,13 @@ function attachRequestOptionsToResult(analysisOnly, requestOptions) {
 }
 
 export default function Analyze() {
-  // 진행 중인 요청을 취소하기 위한 저장소
+  // STEP1 취소
   const analyzeAbortRef = useRef(null);
-
-  // “마지막 요청만 화면에 반영”하기 위한 번호
   const requestSeqRef = useRef(0);
+
+  // STEP2 취소/시퀀스
+  const guideAbortRef = useRef(null);
+  const guideRequestSeqRef = useRef(0);
 
   // 입력 상태
   const [selectedFile, setSelectedFile] = useState(null);
@@ -75,14 +69,14 @@ export default function Analyze() {
 
   // 브릭 옵션
   const [brickMode, setBrickMode] = useState("manual"); // "auto" | "manual"
-  const [brickAllowed, setBrickAllowed] = useState(["1x1"]); // manual 모드에서 사용
+  const [brickAllowed, setBrickAllowed] = useState(["1x1"]);
 
   // STEP 01 결과
   const [analysisResult, setAnalysisResult] = useState(null);
   const [analysisStatus, setAnalysisStatus] = useState("idle"); // idle | running | done | error
   const [analysisError, setAnalysisError] = useState("");
 
-  // STEP 02 결과(steps)
+  // STEP 02 결과
   const [availableSteps, setAvailableSteps] = useState([]);
   const [guideSteps, setGuideSteps] = useState([]);
   const [guideStatus, setGuideStatus] = useState("idle"); // idle | running | done | error
@@ -111,7 +105,6 @@ export default function Analyze() {
         case "INVALID_RESPONSE":
           return "서버 응답 형식이 올바르지 않습니다. 서버 로그를 확인해주세요.";
         case "ABORTED":
-          // 옵션/파일 변경 등으로 의도적으로 취소된 경우는 메시지를 안 보여준다.
           return "";
         default:
           return err.message || "알 수 없는 오류가 발생했습니다.";
@@ -138,8 +131,20 @@ export default function Analyze() {
       analyzeAbortRef.current.abort();
       analyzeAbortRef.current = null;
     }
-    // 이전 요청이 늦게 도착해도 반영되지 않게 번호를 올린다.
     requestSeqRef.current += 1;
+  }
+
+  function abortGuide() {
+    if (guideAbortRef.current) {
+      guideAbortRef.current.abort();
+      guideAbortRef.current = null;
+    }
+    guideRequestSeqRef.current += 1;
+  }
+
+  function abortAll() {
+    abortAnalyze();
+    abortGuide();
   }
 
   function extractAnalysisOnly(guidePayload) {
@@ -156,21 +161,20 @@ export default function Analyze() {
     return normalizeBrickTypes(brickAllowed);
   }
 
-  // 화면을 벗어나면 진행 중 요청을 끊는다.
   useEffect(() => {
-    return () => abortAnalyze();
+    return () => abortAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleImageSelect = (file, url) => {
-    abortAnalyze();
+    abortAll();
     setSelectedFile(file);
     setPreviewUrl(url);
     resetAllResults();
   };
 
   const handleToggleSample = (next) => {
-    abortAnalyze();
+    abortAll();
     setUseSample(next);
     resetAllResults();
   };
@@ -180,28 +184,28 @@ export default function Analyze() {
   };
 
   const handleChangeGridSize = (nextGridSize) => {
-    abortAnalyze();
+    abortAll();
     const safe = toSafeGridSize(nextGridSize);
     setAnalysisOptions((prev) => ({ ...prev, gridSize: safe }));
     resetAllResults();
   };
 
   const handleChangeColorLimit = (nextLimit) => {
-    abortAnalyze();
+    abortAll();
     const safe = toSafeColorLimit(nextLimit);
     setAnalysisOptions((prev) => ({ ...prev, colorLimit: safe }));
     resetAllResults();
   };
 
   const handleChangeBrickMode = (nextMode) => {
-    abortAnalyze();
+    abortAll();
     const safe = toSafeBrickMode(nextMode);
     setBrickMode(safe);
     resetAllResults();
   };
 
   const handleChangeBrickAllowed = (nextAllowed) => {
-    abortAnalyze();
+    abortAll();
     setBrickAllowed(normalizeBrickTypes(nextAllowed));
     resetAllResults();
   };
@@ -209,7 +213,6 @@ export default function Analyze() {
   const handleAnalyze = async () => {
     const startedAt = Date.now();
 
-    // 새 분석 시작 전 상태 정리
     setAnalysisError("");
     setGuideError("");
     setGuideSteps([]);
@@ -221,8 +224,7 @@ export default function Analyze() {
       return;
     }
 
-    // 이전 요청 중단 + 최신 요청 번호 확보
-    abortAnalyze();
+    abortAll();
     const seq = requestSeqRef.current;
 
     const controller = new AbortController();
@@ -230,17 +232,15 @@ export default function Analyze() {
 
     setAnalysisStatus("running");
 
-    // 로딩 문구가 너무 빨리 사라지지 않게 최소 표시 시간을 보장
     const waitMinLoadingIfNeeded = async () => {
       const elapsed = Date.now() - startedAt;
       const remain = MIN_LOADING_MS - elapsed;
       if (remain > 0) await sleep(remain);
     };
 
-    // “요청에 쓰는 옵션 묶음” (요청 직전에 한 번만 만들어서 사용)
     const requestOptions = {
       gridSize: analysisOptions.gridSize,
-      colorLimit: analysisOptions.colorLimit, // 0(제한 없음) 포함
+      colorLimit: analysisOptions.colorLimit,
       brickMode,
       brickTypes: getBrickTypesToSend(),
     };
@@ -250,7 +250,6 @@ export default function Analyze() {
         ? SAMPLE_GUIDE
         : await analyzeGuide(selectedFile, requestOptions, controller.signal);
 
-      // 최신 요청이 아니면 반영하지 않음
       if (seq !== requestSeqRef.current) return;
 
       await waitMinLoadingIfNeeded();
@@ -267,8 +266,6 @@ export default function Analyze() {
       if (seq !== requestSeqRef.current) return;
 
       const msg = normalizeClientError(err);
-
-      // 의도적으로 취소된 요청은 에러로 안 보여줌
       if (!msg) {
         setAnalysisStatus("idle");
         setAnalysisError("");
@@ -310,28 +307,75 @@ export default function Analyze() {
     setGuideStatus("running");
 
     try {
-      if (!availableSteps || availableSteps.length === 0) {
+      // 샘플 모드는 payload에 steps가 있을 수 있으니 그대로 사용
+      if (useSample) {
+        if (!availableSteps || availableSteps.length === 0) {
+          await waitMinLoadingIfNeeded();
+          setGuideStatus("error");
+          setGuideError("샘플 데이터에 steps가 없습니다. SAMPLE_GUIDE를 확인해주세요.");
+          return;
+        }
         await waitMinLoadingIfNeeded();
-        setGuideStatus("error");
-        setGuideError(
-          "현재 조립 단계 정보가 없습니다. 샘플 모드를 사용하거나, steps 생성 API 연동이 필요합니다."
-        );
+        setGuideSteps(availableSteps);
+        setGuideStatus("done");
         return;
       }
 
+      // 실데이터 모드: /api/guide/steps 호출
+      const analysisId =
+        analysisResult?.analysisId ??
+        analysisResult?.analysisID ??
+        analysisResult?.meta?.analysisId;
+
+      if (!analysisId) {
+        await waitMinLoadingIfNeeded();
+        setGuideStatus("error");
+        setGuideError("analysisId를 찾을 수 없습니다. STEP 01을 다시 실행해주세요.");
+        return;
+      }
+
+      abortGuide();
+      const seq = guideRequestSeqRef.current;
+
+      const controller = new AbortController();
+      guideAbortRef.current = controller;
+
+      const res = await buildGuideSteps(
+        {
+          analysisId,
+          brickTypes: getBrickTypesToSend(),
+          optimize: true,
+        },
+        controller.signal
+      );
+
+      if (seq !== guideRequestSeqRef.current) return;
+
       await waitMinLoadingIfNeeded();
-      setGuideSteps(availableSteps);
+      if (seq !== guideRequestSeqRef.current) return;
+
+      const steps = normalizeSteps(res?.steps);
+
+      if (steps.length === 0) {
+        setGuideStatus("error");
+        setGuideError("조립 단계 생성 결과가 비어 있습니다. 서버 steps 생성 로직을 확인해주세요.");
+        return;
+      }
+
+      setGuideSteps(steps);
       setGuideStatus("done");
     } catch (err) {
       console.error(err);
       await waitMinLoadingIfNeeded();
       setGuideStatus("error");
       setGuideError(normalizeClientError(err));
+    } finally {
+      guideAbortRef.current = null;
     }
   };
 
   const handleReset = () => {
-    abortAnalyze();
+    abortAll();
     setSelectedFile(null);
     setPreviewUrl(null);
     setIsOptionsOpen(false);
