@@ -358,7 +358,6 @@ export default function Analyze() {
 
       if (steps.length === 0) {
         setGuideStatus("error");
-        setGuideError("조립 단계 생성 결과가 비어 있습니다. 서버 steps 생성 로직을 확인해주세요.");
         return;
       }
 
@@ -376,7 +375,7 @@ export default function Analyze() {
 
   const handleReset = () => {
     abortAll();
-    setSelectedFile(null);
+    setSelectedFile(false);
     setPreviewUrl(null);
     setIsOptionsOpen(false);
     resetAllResults();
