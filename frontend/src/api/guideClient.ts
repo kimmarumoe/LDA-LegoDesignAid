@@ -220,8 +220,16 @@ export async function analyzeGuide(
   form.append("image", imageFile);
 
   const normalized = normalizeAnalyzeOptions(options);
-  if (normalized) form.append("options", JSON.stringify(normalized));
+  if (normalized) {
+    form.append("options", JSON.stringify(normalized)),
+   form.append("grid_size", normalized.gridSize);
+    form.append("color_limit", String(normalized.colorLimit)); // 0이면 제한 없음
+    form.append("allowed_bricks", JSON.stringify(normalized.brickTypes));
 
+    if (normalized.brickMode) {
+      form.append("brick_mode", normalized.brickMode);
+    }
+  }
   return requestJson<GuideResponse>(
     `${API_BASE_URL}/api/guide/analyze`,
     { method: "POST", body: form },
