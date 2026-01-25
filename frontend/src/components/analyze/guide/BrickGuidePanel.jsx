@@ -35,6 +35,13 @@ export default function BrickGuidePanel({
 
   const summary = analysisResult?.summary;
 
+  // HEX 정규화: "#aabbcc" / "aabbcc" / null 등을 안전하게 "#AABBCC"로
+  const hexKey = (v) => {
+    const s = String(v ?? "").trim().toUpperCase();
+    if (!s) return "";
+    return s.startsWith("#") ? s : `#${s}`;
+  };
+
   // 서버에서 summary 필드명이 조금 달라도 최대한 읽어서 보여준다.
   const summaryView = useMemo(() => {
     const s = summary ?? {};
@@ -54,26 +61,53 @@ export default function BrickGuidePanel({
     }
   }, [analysisStatus]);
 
+  // palette(raw)에서 HEX -> name 매핑 생성
+  const colorNameMap = useMemo(() => {
+    const raw = analysisResult?.palette;
+    if (!Array.isArray(raw)) return {};
+    const map = {};
+    for (const p of raw) {
+      const hx = hexKey(p?.hex ?? p?.color);
+      if (!hx) continue;
+      const name = String(p?.name ?? p?.colorName ?? p?.label ?? "").trim();
+      if (name) map[hx] = name;
+    }
+    return map;
+  }, [analysisResult]);
+
+  // 팔레트 집계: name을 버리지 말고 유지해야 UI에 이름이 뜸
   const paletteSummary = useMemo(() => {
     const raw = analysisResult?.palette;
     if (!Array.isArray(raw) || raw.length === 0) return [];
 
-    const map = new Map();
+    const map = new Map(); // hex -> { hex, name, count }
 
     for (const p of raw) {
-      const hex = p?.hex ?? p?.color;
-      if (!hex) continue;
+      const hx = hexKey(p?.hex ?? p?.color);
+      if (!hx) continue;
 
       const inc = Number(p?.count ?? p?.qty ?? p?.amount);
       const add = Number.isFinite(inc) ? inc : 1;
 
-      map.set(hex, (map.get(hex) ?? 0) + add);
+      const name =
+        String(p?.name ?? p?.colorName ?? p?.label ?? "").trim() ||
+        colorNameMap[hx] ||
+        hx;
+
+      const prev = map.get(hx);
+      if (!prev) {
+        map.set(hx, { hex: hx, name, count: add });
+      } else {
+        map.set(hx, {
+          ...prev,
+          count: prev.count + add,
+          name: prev.name || name,
+        });
+      }
     }
 
-    return [...map.entries()]
-      .map(([hex, count]) => ({ hex, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [analysisResult]);
+    return [...map.values()].sort((a, b) => b.count - a.count);
+  }, [analysisResult, colorNameMap]);
 
   const isPaletteEmpty = paletteSummary.length === 0;
 
@@ -234,12 +268,13 @@ export default function BrickGuidePanel({
                     }}
                   >
                     {paletteToRender.map((p, idx) => {
-                      const color = p.hex ?? "var(--lda-muted-2)";
+                      const hex = p.hex ?? "var(--lda-muted-2)";
+                      const label = p.name ?? colorNameMap[hexKey(hex)] ?? hex;
                       const count = p.count ?? "-";
 
                       return (
                         <div
-                          key={`${color}-${idx}`}
+                          key={`${hex}-${idx}`}
                           style={{
                             display: "flex",
                             alignItems: "center",
@@ -255,12 +290,13 @@ export default function BrickGuidePanel({
                               width: 18,
                               height: 18,
                               borderRadius: 6,
-                              background: color,
+                              background: hex,
                               border: "1px solid var(--lda-border)",
                             }}
                           />
                           <div style={{ lineHeight: 1.2 }}>
-                            <div style={{ fontSize: 12, opacity: 0.9 }}>{color}</div>
+                            <div style={{ fontSize: 12, opacity: 0.9 }}>{label}</div>
+                            <div style={{ fontSize: 11, opacity: 0.65 }}>{hex}</div>
                             <div style={{ fontSize: 12, opacity: 0.75 }}>개수: {count}</div>
                           </div>
                         </div>
@@ -345,7 +381,23 @@ export default function BrickGuidePanel({
                       <ul style={{ marginTop: 8 }}>
                         {bricks.map((b, bIdx) => (
                           <li key={bIdx} style={{ fontSize: 12, opacity: 0.85 }}>
-                            {typeof b === "string" ? b : JSON.stringify(b)}
+                            {typeof b === "string"
+                              ? b
+                              : (() => {
+                                  const hx = hexKey(b?.hex ?? b?.color);
+                                  // 서버가 color에 이미 이름을 넣어줄 수도 있으니(= "#..."가 아니면) 우선 사용
+                                  const serverColor = String(b?.color ?? "").trim();
+                                  const name =
+                                    (serverColor && !serverColor.startsWith("#") ? serverColor : "") ||
+                                    colorNameMap[hx] ||
+                                    hx;
+
+                                  const x = b?.x ?? 0;
+                                  const y = b?.y ?? 0;
+                                  const type = b?.type ?? "1x1";
+
+                                  return `(${x},${y}) ${type} · ${name} (${hx})`;
+                                })()}
                           </li>
                         ))}
                       </ul>
