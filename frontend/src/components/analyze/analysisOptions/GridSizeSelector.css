@@ -1,0 +1,111 @@
+/* GridSizeSelector 전용 스타일 */
+/* 옵션 패널 톤(rounded + tokens)에 맞춰 통일 */
+
+.analyze-page .grid-size {
+  display: grid;
+  gap: 10px;
+}
+
+/* select가 width:100%라서 체크박스가 밀리던 문제 해결 */
+.analyze-page .grid-size__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.analyze-page .grid-size__row .grid-size__select {
+  width: auto;          /* 전역 width:100% 덮어쓰기 */
+  flex: 1 1 auto;       /* 남은 공간을 select가 먹게 */
+  min-width: 160px;
+}
+
+/* 체크박스 필(칩) 스타일로 통일 */
+.analyze-page .grid-size__lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--lda-muted);
+
+  user-select: none;
+}
+
+.analyze-page .grid-size__checkbox {
+  width: 16px;
+  height: 16px;
+
+  /* accent-color는 너무 튀면 제거해도 OK */
+  accent-color: var(--lda-brand-strong);
+}
+
+/* 커스텀 입력 영역 */
+.analyze-page .grid-size__custom {
+  display: grid;
+  gap: 8px;
+}
+
+/* 가로/세로 입력을 안정적으로 정렬 */
+.analyze-page .grid-size__inputs {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.analyze-page .grid-size__input {
+  display: grid;
+  gap: 6px;
+}
+
+.analyze-page .grid-size__input span {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--lda-muted);
+}
+
+/* input을 select과 같은 컨트롤 스타일로 통일 */
+.analyze-page .grid-size__number {
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--lda-control-border);
+  background: var(--lda-control-bg);
+  color: var(--lda-text);
+}
+
+.analyze-page .grid-size__number:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--lda-focus);
+}
+
+.analyze-page .grid-size__x {
+  padding-bottom: 12px;
+  font-weight: 900;
+  color: var(--lda-muted-2);
+  opacity: 0.9;
+}
+
+/* 모바일에서 깨지지 않게 */
+@media (max-width: 520px) {
+  .analyze-page .grid-size__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .analyze-page .grid-size__row .grid-size__select {
+    width: 100%;
+  }
+
+  .analyze-page .grid-size__inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .analyze-page .grid-size__x {
+    display: none;
+  }
+}

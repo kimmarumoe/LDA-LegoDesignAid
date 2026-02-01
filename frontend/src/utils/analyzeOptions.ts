@@ -16,6 +16,10 @@ import { BRICK_TYPES } from "../types/legoGuide";
 export const GRID_PRESETS = ["16x16", "32x32", "48x48"] as const;
 export const COLOR_LIMIT_PRESETS = [0, 8, 16, 24] as const;
 
+// 커스텀 그리드 허용 범위(서버 clamp 규칙과 동일하게 맞춤)
+export const GRID_MIN = 8;
+export const GRID_MAX = 128;
+
 // 자동 모드에서 사용할 기본 브릭 후보(필요하면 여기만 바꾸면 됨)
 export const AUTO_BRICK_PRESET: BrickType[] = ["1x1", "1x2", "1x3", "2x2", "2x3"];
 
@@ -50,14 +54,56 @@ function getAllowedBrickTypeSet(): Set<string> {
   return new Set(normalized);
 }
 
+const GRID_RE = /^(\d+)x(\d+)$/i;
+
+/**
+ * gridSize 문자열을 (w,h)로 파싱한다.
+ * - 허용 포맷: "16x16", "64x80" (공백/대문자 섞여도 OK)
+ * - 범위: GRID_MIN~GRID_MAX
+ */
+export function parseGridSizeDims(v: unknown): { w: number; h: number } | null {
+  if (typeof v !== "string") return null;
+
+  const s = v.trim().toLowerCase().replace(/\s+/g, "");
+  const m = s.match(GRID_RE);
+  if (!m) return null;
+
+  const w = Number(m[1]);
+  const h = Number(m[2]);
+  if (!Number.isFinite(w) || !Number.isFinite(h)) return null;
+
+  const wi = Math.trunc(w);
+  const hi = Math.trunc(h);
+
+  if (wi < GRID_MIN || wi > GRID_MAX) return null;
+  if (hi < GRID_MIN || hi > GRID_MAX) return null;
+
+  return { w: wi, h: hi };
+}
+
+/**
+ * (w,h)를 gridSize 문자열로 정규화한다.
+ * - 내부적으로 한 번 더 범위 가드(clamp)
+ */
+export function formatGridSize(w: number, h: number): AnalyzeOptions["gridSize"] {
+  const wi = Math.trunc(w);
+  const hi = Math.trunc(h);
+
+  const safeW = Math.max(GRID_MIN, Math.min(GRID_MAX, wi));
+  const safeH = Math.max(GRID_MIN, Math.min(GRID_MAX, hi));
+
+  return `${safeW}x${safeH}` as AnalyzeOptions["gridSize"];
+}
+
 /*
-  gridSize를 “허용값이면 반환, 아니면 null”로 처리합니다.
-  (API 쪽에서는 기본값을 강제하지 않고, 유효할 때만 넣는 방식이 안전합니다.)
+  gridSize를 “유효하면 반환, 아니면 null”로 처리합니다.
+  - 프리셋이든 커스텀이든 "숫자x숫자" + 범위만 통과하면 OK
+  - API 쪽에서는 기본값을 강제하지 않고 유효할 때만 넣는 편이 안전합니다.
 */
 export function acceptGridSizeOrNull(v: unknown): AnalyzeOptions["gridSize"] | null {
-  if (typeof v !== "string") return null;
-  const g = v.toLowerCase().replace(/\s+/g, "");
-  return (GRID_PRESETS as readonly string[]).includes(g) ? (g as AnalyzeOptions["gridSize"]) : null;
+  const dims = parseGridSizeDims(typeof v === "string" ? v : "");
+  if (!dims) return null;
+  return formatGridSize(dims.w, dims.h);
 }
 
 /*
