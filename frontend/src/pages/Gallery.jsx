@@ -1,4 +1,4 @@
-// src/pages/Gallery.jsx
+//src/pages/Gallery.jsx
 
 const MOCK_SAMPLES = [
   {
@@ -24,7 +24,6 @@ const MOCK_SAMPLES = [
   },
 ];
 
-// ✅ 꼭 `export default function Gallery()` 형태로!
 export default function Gallery() {
   return (
     <main className="gallery-page">

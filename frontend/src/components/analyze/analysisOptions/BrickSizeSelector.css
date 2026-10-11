@@ -3,9 +3,9 @@
 .brickAutoNote {
   margin-top: 10px;
   padding: 12px;
-  border: 1px solid var(--lda-border);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 14px;
-  background: var(--lda-surface-2);
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .brickAutoTitle {
@@ -30,7 +30,7 @@
   place-items: center;
   z-index: 2;
   border-radius: 14px;
-  background: var(--lda-surface-glass);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(2px);
   font-weight: 800;
   padding: 10px;
@@ -50,8 +50,8 @@
 }
 
 .presetBtn {
-  border: 1px solid var(--lda-border-strong);
-  background: var(--lda-surface);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
   border-radius: 999px;
   padding: 8px 12px;
   font-weight: 700;
@@ -64,7 +64,7 @@
 }
 
 .presetBtn.danger {
-  background: var(--lda-surface-2);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .brickSummaryBar {
@@ -73,8 +73,8 @@
   gap: 8px;
   padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid var(--lda-border);
-  background: var(--lda-surface-2);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
   margin-bottom: 12px;
 }
 
@@ -95,7 +95,7 @@
   width: 4px;
   height: 4px;
   border-radius: 999px;
-  background: var(--lda-muted-2);
+  background: rgba(0, 0, 0, 0.25);
 }
 
 .brickSection {
@@ -128,15 +128,14 @@
   }
 }
 
-
 .sizeChip {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 10px 12px;
   border-radius: 14px;
-  border: 1px solid var(--lda-border-strong);
-  background: var(--lda-surface);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
   text-align: left;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 120ms ease;
@@ -144,13 +143,13 @@
 
 .sizeChip:hover {
   transform: translateY(-1px);
-  box-shadow: var(--lda-shadow-soft);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
 
 .sizeChip.selected {
   /* ✅ 여기 컬러만 LDA 메인 컬러로 맞추면 톤이 완전 통일됨 */
-  border-color: var(--lda-brand-border);
-  background: var(--lda-brand-weak);
+  border-color: rgba(16, 120, 98, 0.55);
+  background: rgba(16, 120, 98, 0.06);
 }
 
 .sizeChip.locked {
@@ -171,14 +170,14 @@
   font-weight: 900;
   padding: 4px 8px;
   border-radius: 999px;
-  border: 1px solid var(--lda-border);
-  background: var(--lda-surface-2);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.03);
   opacity: 0.9;
 }
 
 .sizeChipBadge.ok {
-  border-color: var(--lda-brand-border);
-  background: var(--lda-brand-weak);
+  border-color: rgba(16, 120, 98, 0.45);
+  background: rgba(16, 120, 98, 0.1);
 }
 
 .sizeChipBadge.ghost {
@@ -202,8 +201,8 @@
   gap: 6px;
   padding: 4px;
   border-radius: 999px;
-  border: 1px solid var(--lda-border-strong);
-  background: var(--lda-surface-2);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .optGroup .modeBtn {
@@ -218,17 +217,17 @@
 
 .optGroup .modeBtn:hover {
   transform: translateY(-1px);
-  background: var(--lda-surface-3);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .optGroup .modeBtn.active {
   /* LDA 포인트 컬러(현재 칩 선택색과 동일 톤) */
-  background: var(--lda-brand-weak);
-  border: 1px solid var(--lda-brand-border);
+  background: rgba(16, 120, 98, 0.12);
+  border: 1px solid rgba(16, 120, 98, 0.45);
 }
 
 .optGroup .modeBtn:focus-visible {
-  outline: 2px solid var(--lda-focus);
+  outline: 2px solid rgba(16, 120, 98, 0.45);
   outline-offset: 2px;
 }
 

@@ -1,9 +1,6 @@
 // src/components/layout/Layout.jsx
 import { NavLink } from "react-router-dom";
-import { useState } from "react";
-import { Moon, Sun } from "lucide-react";
-import { getInitialTheme, saveTheme } from "../../utils/theme.js";
-import Footer from "./Footer"; // ✅ 같은 폴더
+import Footer from "./Footer";
 import "./Layout.css";
 
 // 상단 네비게이션에 표시할 메뉴 정의
@@ -19,13 +16,6 @@ const NAV_ITEMS = [
  * - 상단 네비게이션 + 본문(main) + Footer
  */
 export default function Layout({ children }) {
-  const [theme, setTheme] = useState(getInitialTheme);
-
-  const handleThemeChange = (nextTheme) => {
-    saveTheme(nextTheme);
-    setTheme(nextTheme);
-  };
-
   return (
     <div className="app-root">
       <header className="app-header">
@@ -46,15 +36,6 @@ export default function Layout({ children }) {
               </NavLink>
             ))}
           </nav>
-          <button
-            type="button"
-            className="theme-trigger"
-            onClick={() => handleThemeChange(theme === "dark" ? "light" : "dark")}
-            aria-label={theme === "dark" ? "라이트 모드로 변경" : "다크 모드로 변경"}
-            title={theme === "dark" ? "라이트 모드로 변경" : "다크 모드로 변경"}
-          >
-            {theme === "dark" ? <Sun size={20} aria-hidden="true" /> : <Moon size={20} aria-hidden="true" />}
-          </button>
         </div>
       </header>
 

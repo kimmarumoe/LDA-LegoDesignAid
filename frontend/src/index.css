@@ -1,5 +1,6 @@
 /* frontend/src/index.css */
 
+@import "tailwindcss";
 *,
 *::before,
 *::after {
