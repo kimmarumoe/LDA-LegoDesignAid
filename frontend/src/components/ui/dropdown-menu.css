@@ -93,6 +93,22 @@
   display: flex;
 }
 
+.dropdown-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 5px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--lda-text);
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+}
+.dropdown-menu-item[data-highlighted] { background: var(--lda-brand-weak); }
+.dropdown-menu-item[data-disabled] { opacity: .5; cursor: default; }
+
 @media (prefers-reduced-motion: reduce) {
   .dropdown-menu-content { transition: none; }
 }

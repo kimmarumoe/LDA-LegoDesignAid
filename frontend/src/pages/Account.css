@@ -1,0 +1,47 @@
+.account-page { padding: 32px 0; color: var(--lda-text); }
+.account-page h1 { margin: 8px 0 12px; font-size: 28px; font-weight: 800; }
+.account-page h2 { margin-bottom: 16px; font-size: 20px; font-weight: 700; }
+.account-card { padding: 28px; border: 1px solid var(--lda-border); border-radius: 20px; background: var(--lda-surface); box-shadow: var(--lda-shadow-subtle); }
+.account-form-card { max-width: 480px; margin: 0 auto; }
+.account-muted { color: var(--lda-muted); line-height: 1.7; }
+.account-page a { color: var(--lda-brand); text-decoration: underline; text-underline-offset: 3px; }
+.account-page form { margin-top: 24px; }
+.account-page fieldset { display: grid; gap: 10px; border: 0; min-width: 0; padding: 0; }
+.account-page label { margin-top: 8px; font-weight: 600; }
+.account-page input { width: 100%; border: 1px solid var(--lda-control-border); border-radius: 10px; padding: 12px; color: var(--lda-control-text); background: var(--lda-control-bg); }
+.account-page small { color: var(--lda-muted); line-height: 1.5; }
+.account-page button { cursor: pointer; font: inherit; }
+.account-page button:disabled { cursor: default; opacity: .5; }
+.account-page :is(input,button,a):focus-visible { outline: 2px solid var(--lda-brand); outline-offset: 3px; }
+.account-page .account-primary { display: inline-flex; align-items: center; justify-content: center; padding: 12px 20px; border: 0; border-radius: 10px; background: var(--lda-brand-strong); color: var(--lda-on-brand); text-decoration: none; margin-top: 12px; font-weight: 700; }
+.account-secondary { padding: 10px 16px; border-radius: 10px; border: 1px solid var(--lda-border-strong); background: var(--lda-surface-2); color: var(--lda-text); }
+.account-password-field { position: relative; }
+.account-password-field input { padding-right: 54px; }
+.account-password-toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: transparent; color: var(--lda-muted); }
+.account-password-toggle:hover { color: var(--lda-text); background: var(--lda-surface-2); }
+.account-page input[aria-invalid="true"] { border-color: var(--account-error-color); }
+.account-page { --account-error-color: #b42318; --account-error-bg: #fff1f0; }
+:root[data-theme="dark"] .account-page { --account-error-color: #ffb4ab; --account-error-bg: #391d22; }
+.account-switch { margin: 20px 0; text-align: center; }
+.account-footnote { font-size: 12px; }
+.account-error { display: flex; align-items: flex-start; gap: 8px; border: 1px solid var(--account-error-color); color: var(--account-error-color); background: var(--account-error-bg); border-radius: 8px; padding: 12px; font-weight: 600; line-height: 1.6; }
+.account-error svg { flex-shrink: 0; margin-top: 3px; }
+.account-notice { padding: 12px; margin-top: 16px; border-radius: 8px; background: var(--lda-brand-weak); line-height: 1.6; }
+.account-dashboard { display: grid; gap: 24px; }
+.account-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.account-profile { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 12px; margin: 20px 0; }
+.account-profile dt { color: var(--lda-muted); }
+.account-profile dd { overflow-wrap: anywhere; }
+.account-badge { display: inline-block; padding: 4px 10px; margin-bottom: 12px; border-radius: 999px; background: var(--lda-surface-2); font-size: 12px; }
+.account-grid a { display: inline-block; margin-top: 16px; }
+.profile-editor { max-width: 480px; margin-bottom: 24px; }
+.profile-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.profile-card-heading h2 { margin-bottom: 0; }
+.profile-edit-trigger { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--lda-brand); font-size: 13px; }
+.profile-edit-trigger:hover { background: var(--lda-brand-weak); }
+.profile-editor-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.profile-editor-heading h3 { font-weight: 700; }
+.profile-password-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--lda-border); }
+.profile-password-section summary { cursor: pointer; font-weight: 700; margin-bottom: 12px; }
+.profile-password-section summary:focus-visible { outline: 2px solid var(--lda-brand); outline-offset: 4px; }
+@media (max-width: 640px) { .account-grid { grid-template-columns: 1fr; } .account-card { padding: 20px; } .account-page { padding: 20px 0; } }

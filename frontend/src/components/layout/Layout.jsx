@@ -1,10 +1,11 @@
 // src/components/layout/Layout.jsx
-import { NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { Menu, Moon, Sun, X } from "lucide-react";
 import { getInitialTheme, saveTheme } from "../../utils/theme.js";
 import Footer from "./Footer";
 import "./Layout.css";
+import AccountMenu from "./AccountMenu.jsx";
 
 // 상단 네비게이션에 표시할 메뉴 정의
 const NAV_ITEMS = [
@@ -19,6 +20,11 @@ const NAV_ITEMS = [
  * - 상단 네비게이션 + 본문(main) + Footer
  */
 export default function Layout({ children }) {
+  const location = useLocation();
+  const [mobileMenu, setMobileMenu] = useState({ path: "", open: false });
+  const [accountError, setAccountError] = useState("");
+  const mobileOpen = mobileMenu.open && mobileMenu.path === location.pathname;
+  const closeMenu = () => setMobileMenu({ path: location.pathname, open: false });
   const [theme, setTheme] = useState(getInitialTheme);
 
   const handleThemeChange = () => {
@@ -29,16 +35,22 @@ export default function Layout({ children }) {
 
   return (
     <div className="app-root">
-      <header className="app-header">
+      <header className="app-header" onKeyDown={(event) => {
+        if (event.key === "Escape" && mobileOpen) {
+          closeMenu();
+          document.getElementById("mobile-menu-trigger")?.focus();
+        }
+      }}>
         <div className="app-header-inner">
-          <div className="app-logo">LDA</div>
+          <Link to="/" className="app-logo" aria-label="LDA 메인 화면" onClick={closeMenu}>LDA</Link>
 
-          <nav className="app-nav" aria-label="메인 네비게이션">
+          <nav id="main-navigation" className={`app-nav${mobileOpen ? " app-nav--open" : ""}`} aria-label="메인 네비게이션">
             {NAV_ITEMS.map(({ to, label, end }) => (
               <NavLink
                 key={to}
                 to={to}
                 end={end}
+                onClick={closeMenu}
                 className={({ isActive }) =>
                   "app-nav-link" + (isActive ? " app-nav-link-active" : "")
                 }
@@ -47,16 +59,23 @@ export default function Layout({ children }) {
               </NavLink>
             ))}
           </nav>
-          <button
-            type="button"
-            className="theme-trigger"
-            onClick={handleThemeChange}
-            aria-label={theme === "dark" ? "라이트 모드로 변경" : "다크 모드로 변경"}
-            title={theme === "dark" ? "라이트 모드로 변경" : "다크 모드로 변경"}
-          >
-            {theme === "dark" ? <Sun size={20} aria-hidden="true" /> : <Moon size={20} aria-hidden="true" />}
-          </button>
+          <div className="header-actions">
+            <button
+              type="button"
+              className="theme-trigger"
+              onClick={handleThemeChange}
+              aria-label={theme === "dark" ? "라이트 모드로 변경" : "다크 모드로 변경"}
+              title={theme === "dark" ? "라이트 모드로 변경" : "다크 모드로 변경"}
+            >
+              {theme === "dark" ? <Sun size={20} aria-hidden="true" /> : <Moon size={20} aria-hidden="true" />}
+            </button>
+            <AccountMenu onNavigate={closeMenu} onError={setAccountError} />
+            <button id="mobile-menu-trigger" type="button" className="mobile-menu-trigger" aria-label={mobileOpen ? "메뉴 닫기" : "메뉴 열기"} aria-expanded={mobileOpen} aria-controls="main-navigation" onClick={() => setMobileMenu({ path: location.pathname, open: !mobileOpen })}>
+              {mobileOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
+            </button>
+          </div>
         </div>
+        {accountError && <p className="header-account-error" role="alert">{accountError}</p>}
       </header>
 
       <main className="app-main">{children}</main>

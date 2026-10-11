@@ -33,6 +33,10 @@ export function DropdownMenuSeparator(props) {
   return <MenuPrimitive.Separator className="dropdown-menu-separator" {...props} />;
 }
 
+export function DropdownMenuItem({ className = "", ...props }) {
+  return <MenuPrimitive.Item className={`dropdown-menu-item ${className}`} {...props} />;
+}
+
 export function DropdownMenuRadioGroup(props) {
   return <MenuPrimitive.RadioGroup {...props} />;
 }
