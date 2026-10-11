@@ -5,18 +5,17 @@ import { BRICK_TYPES } from "../types/legoGuide";
 /*
   이 파일은 “분석 옵션 규칙”의 단일 기준(SSOT)입니다.
 
-  화면(Analyze.jsx)과 API 요청(guideClient.ts)이
-  서로 다른 규칙을 쓰기 시작하면,
-  작은 변경에도 결과가 다르게 나오거나 오류가 생길 수 있습니다.
+  화면(Analyze.jsx)과 API 요청(guideClient.ts)이 서로 다른 규칙을 쓰기 시작하면,
+  같은 옵션을 선택해도 서로 다른 값이 서버로 전달되어 버그가 생깁니다.
 
-  그래서 허용값, 보정 규칙, 브릭 타입 필터 규칙을
-  여기 한 곳에만 두고, 다른 파일들은 여기 함수를 가져다 씁니다.
+  그래서 허용값, 보정 규칙, 브릭 타입 필터 규칙을 여기 한 곳에만 두고,
+  다른 파일들은 여기 함수를 가져다 쓰도록 합니다.
 */
 
 export const GRID_PRESETS = ["16x16", "32x32", "48x48"] as const;
 export const COLOR_LIMIT_PRESETS = [0, 8, 16, 24] as const;
 
-// 커스텀 그리드 허용 범위(서버 clamp 규칙과 동일하게 맞춤)
+// 커스텀 그리드 허용 범위(서버 정책과 동일)
 export const GRID_MIN = 8;
 export const GRID_MAX = 128;
 
@@ -54,22 +53,42 @@ function getAllowedBrickTypeSet(): Set<string> {
   return new Set(normalized);
 }
 
-const GRID_RE = /^(\d+)x(\d+)$/i;
+/*
+  gridSize는 “겉보기엔 128x128인데 정규식이 실패”하는 경우가 자주 생깁니다.
+  원인:
+  - 곱하기 기호(×, ✕, ✖) / fullwidth x(ｘ) / 대문자 X
+  - 제로폭 공백(\u200b) 같은 눈에 안 보이는 문자
+  - 콤마/콜론 등 입력 실수
 
-/**
- * gridSize 문자열을 (w,h)로 파싱한다.
- * - 허용 포맷: "16x16", "64x80" (공백/대문자 섞여도 OK)
- * - 범위: GRID_MIN~GRID_MAX
- */
+  그래서 요청 직전에 문자열을 안전하게 정규화합니다.
+*/
+const INVISIBLE_RE = /[\s\u200b\u200c\u200d\ufeff]+/g;
+const GRID_RE = /^(\d+)(?:x(\d+))?$/i;
+
+function normalizeGridSizeString(raw: string): string {
+  const cleaned = String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(INVISIBLE_RE, "");
+
+  // 흔한 구분자를 전부 x로 통일
+  return cleaned
+    .replace(/×|✕|✖|\*|＊|ｘ|,|:/g, "x")
+    .replace(/xx+/g, "x");
+}
+
 export function parseGridSizeDims(v: unknown): { w: number; h: number } | null {
   if (typeof v !== "string") return null;
 
-  const s = v.trim().toLowerCase().replace(/\s+/g, "");
+  const s = normalizeGridSizeString(v);
+  if (!s) return null;
+
   const m = s.match(GRID_RE);
   if (!m) return null;
 
   const w = Number(m[1]);
-  const h = Number(m[2]);
+  const h = m[2] != null ? Number(m[2]) : w;
+
   if (!Number.isFinite(w) || !Number.isFinite(h)) return null;
 
   const wi = Math.trunc(w);
@@ -97,8 +116,6 @@ export function formatGridSize(w: number, h: number): AnalyzeOptions["gridSize"]
 
 /*
   gridSize를 “유효하면 반환, 아니면 null”로 처리합니다.
-  - 프리셋이든 커스텀이든 "숫자x숫자" + 범위만 통과하면 OK
-  - API 쪽에서는 기본값을 강제하지 않고 유효할 때만 넣는 편이 안전합니다.
 */
 export function acceptGridSizeOrNull(v: unknown): AnalyzeOptions["gridSize"] | null {
   const dims = parseGridSizeDims(typeof v === "string" ? v : "");
@@ -118,7 +135,7 @@ export function acceptColorLimitOrNull(n: number): AnalyzeOptions["colorLimit"] 
 
 /*
   brickMode는 auto/manual만 허용합니다.
-  예전에 menual 같은 오타가 들어왔던 기록이 있으면 manual로 보정합니다.
+  과거 오타(menual)가 들어왔던 기록이 있으면 manual로 보정합니다.
 */
 export function toBrickModeOrNull(v: unknown): BrickModePreset | null {
   if (typeof v !== "string") return null;
@@ -131,7 +148,7 @@ export function toBrickModeOrNull(v: unknown): BrickModePreset | null {
 
 /*
   UI에서 쓰는 “안전한 값 반환” 버전들입니다.
-  사용자가 이상한 값을 넣어도 기본값으로 되돌려서 UI/요청이 안정적으로 동작하게 합니다.
+  사용자가 이상한 값을 넣어도 기본값으로 되돌려 UI/요청이 안정적으로 동작하게 합니다.
 */
 export function toSafeGridSize(input: unknown): AnalyzeOptions["gridSize"] {
   return acceptGridSizeOrNull(readInputValue(input)) ?? "16x16";

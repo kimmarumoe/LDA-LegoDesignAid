@@ -1,0 +1,98 @@
+.dropdown-menu-positioner {
+  z-index: 100;
+  outline: none;
+}
+
+.option-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--lda-control-border);
+  border-radius: 8px;
+  background: var(--lda-control-bg);
+  color: var(--lda-control-text);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option-dropdown-trigger:focus-visible {
+  outline: 2px solid var(--lda-brand);
+  outline-offset: 2px;
+}
+
+.option-dropdown-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.option-dropdown-content {
+  min-width: max(180px, var(--anchor-width));
+}
+
+.dropdown-menu-content {
+  min-width: 180px;
+  max-width: var(--available-width);
+  max-height: var(--available-height);
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--lda-border-strong);
+  border-radius: 8px;
+  background: var(--lda-surface);
+  color: var(--lda-text);
+  box-shadow: var(--lda-shadow-strong);
+  outline: none;
+  transform-origin: var(--transform-origin);
+  transition: opacity 100ms ease, transform 100ms ease;
+}
+
+.dropdown-menu-content[data-starting-style],
+.dropdown-menu-content[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.dropdown-menu-label {
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lda-muted);
+}
+
+.dropdown-menu-separator {
+  height: 1px;
+  margin: 4px -4px;
+  background: var(--lda-border);
+}
+
+.dropdown-menu-radio-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 32px 8px 8px;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: default;
+  user-select: none;
+  outline: none;
+}
+
+.dropdown-menu-radio-item[data-highlighted] {
+  background: var(--lda-brand-weak);
+  color: var(--lda-text-strong);
+}
+
+.dropdown-menu-indicator {
+  position: absolute;
+  right: 8px;
+  display: flex;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropdown-menu-content { transition: none; }
+}

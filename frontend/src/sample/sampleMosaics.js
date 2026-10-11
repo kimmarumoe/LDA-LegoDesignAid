@@ -1,3 +1,5 @@
+import { SAMPLE_GUIDE_PRESETS } from "./sampleGuide.js";
+
 // frontend/src/sample/sampleMosaics.js
 
 // TODO: 썸네일 이미지는 나중에 public/samples/... 경로에 추가 예정
@@ -10,7 +12,7 @@ export const SAMPLE_MOSAICS = [
     description: "입문용으로 가볍게 만들어볼 수 있는 스마일 이모티콘 모자이크입니다.",
     width: 16,
     height: 16,
-    brickCount: 160,
+    brickCount: SAMPLE_GUIDE_PRESETS["smile-16"].summary.totalBricks,
     difficulty: "입문",
     tags: ["캐릭터", "입문"],
     thumbnail: null,
@@ -21,7 +23,7 @@ export const SAMPLE_MOSAICS = [
     description: "빨간 모자 심볼을 중심으로 한 32x32 사이즈의 마리오 모자이크입니다.",
     width: 32,
     height: 32,
-    brickCount: 420,
+    brickCount: SAMPLE_GUIDE_PRESETS["mario-hat-32"].summary.totalBricks,
     difficulty: "중급",
     tags: ["게임", "컬러 포인트"],
     thumbnail: null,
@@ -32,7 +34,7 @@ export const SAMPLE_MOSAICS = [
     description: "밤하늘과 건물 실루엣이 강조된 와이드 비율 스카이라인 샘플입니다.",
     width: 32,
     height: 16,
-    brickCount: 260,
+    brickCount: SAMPLE_GUIDE_PRESETS["skyline-32x16"].summary.totalBricks,
     difficulty: "중급",
     tags: ["풍경", "와이드"],
     thumbnail: null,

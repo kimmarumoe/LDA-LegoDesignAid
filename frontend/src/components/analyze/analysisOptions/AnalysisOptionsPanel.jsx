@@ -1,3 +1,4 @@
+import OptionDropdown from "../../ui/option-dropdown.jsx";
 import BrickSizeSelector from "./BrickSizeSelector.jsx";
 import GridSizeSelector from "./GridSizeSelector.jsx";
 import "./AnalysisOptionsPanel.css";
@@ -33,17 +34,18 @@ export default function AnalysisOptionsPanel({
 
       <div className="option-field">
         <label className="option-label">색상 개수 제한</label>
-        <select
-          className="form-select"
+        <OptionDropdown
+          label="색상 개수 제한"
           value={String(colorLimit)}
-          onChange={(e) => onChangeColorLimit(Number(e.target.value))}
+          onValueChange={(next) => onChangeColorLimit(Number(next))}
           disabled={disabled}
-        >
-          <option value="0">제한 없음</option>
-          <option value="8">8 색</option>
-          <option value="16">16 색</option>
-          <option value="24">24 색</option>
-        </select>
+          options={[
+            { value: "0", label: "제한 없음" },
+            { value: "8", label: "8 색" },
+            { value: "16", label: "16 색" },
+            { value: "24", label: "24 색" },
+          ]}
+        />
 
         <div className="option-sub">
           색상 제한이 낮을수록 단순화되고, 높을수록 원본에 가까워집니다.

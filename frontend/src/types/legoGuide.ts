@@ -20,83 +20,78 @@ export interface Brick {
   id: BrickId; // 고유 식별자
   x: number; // 가로 좌표
   y: number; // 세로 좌표
-  z: number; // 높이 (1차 버전은 항상 0, 추후 2.5D/3D 확장용)
-  color: string; // 색상
-  type: BrickType; // 브릭 종류
+  z: number; // 높이 (1층이면 0)
+  type: BrickType;
+  color: string; // hex
+  colorName?: string; // human-readable
 }
 
-// 조립 가이드에 대한 메타데이터
+// 팔레트 요약 정보
+export interface PaletteItem {
+  id: string;
+  name: string;
+  hex: string;
+  count: number;
+}
+
+// 분석 결과가 반환하는 메타 정보
 export interface GuideMeta {
-  title?: string; // 디자인 제목
-  width?: number; // 모자이크 가로 크기 (그리드 단위)
-  height?: number; // 모자이크 세로 크기 (그리드 단위)
-  language?: "ko" | "en"; // 설명 언어
+  width?: number;
+  height?: number;
+  gridWidth?: number;
+  gridHeight?: number;
+  colorLimit?: number;
+  brickTypes?: BrickType[];
+  brickMode?: "auto" | "manual";
+  requestOptions?: unknown;
 }
 
-// AI 서버로 보내는 조립 가이드 생성 요청 (기존 방식 유지)
-export interface GuideRequest {
-  bricks: Brick[]; // 모자이크에 사용되는 모든 브릭
-  meta?: GuideMeta; // 부가 정보
+// 조립 단계/가이드 응답
+export interface GuideResponse {
+  schemaVersion?: number;
+  analysisId?: string;
+  meta?: GuideMeta;
+  palette?: PaletteItem[];
+  bricks?: Brick[];
+  sections?: unknown[];
+  steps?: unknown[];
 }
 
 // 이미지 분석 옵션(체크박스/옵션 UI가 만드는 값)
+export type GridSizePreset = "16x16" | "32x32" | "48x48";
+
+// 커스텀 그리드: "숫자x숫자" (범위 검증은 runtime에서 수행)
+export type GridSize = GridSizePreset | `${number}x${number}`;
+
 export interface AnalyzeOptions {
-  gridSize: "16x16" | "32x32" | "48x48";
+  gridSize: GridSize;
   colorLimit: 0 | 8 | 16 | 24;
   brickTypes: BrickType[];
 
   brickMode?: "auto" | "manual";
 }
 
-// 타일링 결과 배치 단위
-export interface Placement {
-  id?: BrickId;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  color: string;
-  type: BrickType;
+export interface BuildStepsRequest {
+  analysisId: string;
+  sectionMode: "single" | "rows" | "quadrants";
+  rowsPerSection: number;
+  rowsPerStep: number;
+  maxPlacementsPerStep: number;
+  optimize?: boolean;
 }
 
-// 조립 과정의 한 단계 정보 (기존 V1)
-export interface GuideStepV1 {
-  step: number; // 단계 번호
-  title: string; // 단계 제목
-  description: string; // 단계 설명 문장
-  brickIds: BrickId[]; // 이 단계에서 사용할 브릭들의 id 목록
-}
-
-// 조립 과정의 한 단계 정보 ( V2: placements 기반)
-export interface GuideStepV2 {
-  index: number; // 단계 번호
-  title: string;
-  description?: string;
-  placements: Placement[];
-}
-
-// 서버가 V1/V2 중 무엇을 내려줘도 수용
-export type GuideStep = GuideStepV1 | GuideStepV2;
-
-// 가이드 전체에 대한 간단 통계 정보 (기존)
-export interface GuideStats {
-  totalBricks: number;
-  totalSteps: number;
-}
-
-// 부품 수량
-// 서버가 BrickType 키를 주로 쓰겠지만, 유연하게 문자열 키도 허용
-export type PartsMap = Partial<Record<BrickType, number>> & Record<string, number>;
-
-// AI 서버에서 돌아오는 최종 조립 가이드 응답
-export interface GuideResponse {
-  steps?: GuideStep[]; // 단계별 가이드 목록
-  summary?: string; // 전체 요약 문장
-  stats?: GuideStats; // 통계 정보
-
-  
-  meta?: GuideMeta;
-  brick_types?: BrickType[]; // 서버 정규화 결과
-  placements?: Placement[]; // 전체 배치
-  parts?: PartsMap; // 타입별 수량
+export interface BuildStepsResponse {
+  analysisId: string;
+  sections: unknown[];
+  steps: unknown[];
+  bricks: Brick[];
+  meta: {
+    width: number;
+    height: number;
+    sectionMode: string;
+    rowsPerSection: number;
+    rowsPerStep: number;
+    maxPlacementsPerStep: number;
+    optimize: boolean;
+  };
 }

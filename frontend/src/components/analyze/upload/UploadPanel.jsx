@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import AnalysisOptionsPanel from "../analysisOptions/AnalysisOptionsPanel.jsx";
 import "./UploadPanel.css";
 
@@ -29,6 +29,10 @@ export default function UploadPanel({
 }) {
   const lastObjectUrlRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  useEffect(() => () => {
+    if (lastObjectUrlRef.current) URL.revokeObjectURL(lastObjectUrlRef.current);
+  }, []);
 
   const isRunning = analysisStatus === "running";
   const canAnalyze = useSample || hasFile;

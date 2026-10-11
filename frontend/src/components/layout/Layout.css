@@ -63,6 +63,34 @@
   white-space: nowrap;
 }
 
+.theme-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--lda-text);
+  font-size: 13px;
+  flex-shrink: 0;
+  padding: 7px 10px;
+  background: var(--lda-control-bg);
+  border: 1px solid var(--lda-control-border);
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+
+.theme-trigger:hover {
+  background: var(--lda-brand-weak);
+}
+
+.theme-trigger:focus-visible {
+  outline: 2px solid var(--lda-brand);
+  outline-offset: 2px;
+}
+
 /* Nav */
 .app-nav {
   display: flex;
@@ -112,7 +140,7 @@
   padding-left: calc(var(--container-pad) + env(safe-area-inset-left));
   padding-right: calc(var(--container-pad) + env(safe-area-inset-right));
 
-  /* ✅ 내부 컴포넌트가 width 계산 실수해도 문서 폭을 키우지 않게 */
+  /*  내부 컴포넌트가 width 계산 실수해도 문서 폭을 키우지 않게 */
   min-width: 0;
   overflow-x: hidden;
 }

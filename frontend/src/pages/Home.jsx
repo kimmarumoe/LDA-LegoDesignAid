@@ -119,7 +119,7 @@ export default function Home() {
               <Link to="/analyze" className="home-btn home-btn-primary">
                 이미지 분석 시작하기
               </Link>
-              <Link to="/gallery" className="home-btn home-btn-secondary">
+              <Link to="/sample" className="home-btn home-btn-secondary">
                 샘플 결과 구경하기
               </Link>
             </div>

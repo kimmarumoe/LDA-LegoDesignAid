@@ -1,14 +1,14 @@
 // frontend/src/api/guideClient.ts
 import type { GuideResponse, AnalyzeOptions, BrickType } from "../types/legoGuide";
-import { BRICK_TYPES } from "../types/legoGuide";
+import { acceptGridSizeOrNull, normalizeBrickTypes, toSafeColorLimit } from "../utils/analyzeOptions";
 
 /**
  * STEP2 요청/응답 타입은 지금은 api 클라이언트 내부에 최소 정의로 둔다.
- * (다음 단계 B에서 ../types/legoGuide.ts로 이동해서 SSOT로 만들 예정)
+ * (다음 단계에서 ../types/legoGuide.ts로 이동해서 SSOT로 만들 예정)
  */
 export type BuildStepsRequest = {
   analysisId: string;
-  brickTypes?: BrickType[]; // 문자열 대신 SSOT 타입 사용
+  brickTypes?: BrickType[];
   optimize?: boolean;
   // 서버 확장용 옵션(있어도 되고 없어도 됨)
   [key: string]: unknown;
@@ -40,8 +40,49 @@ export type NormalizedApiError = {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:9000";
 
 /**
+ * 타입 가드
+ * - 왜: options가 배열/원시값으로 들어오면 런타임에서 .gridSize 접근이 터질 수 있다.
+ */
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function toErrorMessage(v: unknown, fallback: string) {
+  if (typeof v === "string" && v.trim()) return v;
+  if (isRecord(v) && typeof v.message === "string" && v.message.trim()) return v.message;
+  try {
+    if (v != null) return JSON.stringify(v);
+  } catch {
+    // ignore
+  }
+  return fallback;
+}
+
+/**
+ * AnalyzeOptions 정규화(SSOT)
+ * - 왜: 화면(Analyze)과 API 요청(guideClient)이 다른 규칙을 쓰면,
+ *       커스텀 그리드/허용값 처리에서 쉽게 엇갈려 버그가 난다.
+ * - 해결: /utils/analyzeOptions.ts 의 규칙을 그대로 사용한다.
+ */
+function normalizeAnalyzeOptions(options?: unknown): AnalyzeOptions | undefined {
+  if (!isRecord(options)) return undefined;
+
+  const gridSize: AnalyzeOptions["gridSize"] = acceptGridSizeOrNull(options.gridSize) ?? "16x16";
+  const colorLimit: AnalyzeOptions["colorLimit"] = toSafeColorLimit(options.colorLimit);
+
+  // brickTypes 규칙(허용 목록, 중복 제거, 1x1 강제)은 SSOT를 사용
+  const brickTypes = normalizeBrickTypes(options.brickTypes);
+
+  const brickModeRaw = options.brickMode;
+  const brickMode: AnalyzeOptions["brickMode"] | undefined =
+    brickModeRaw === "auto" || brickModeRaw === "manual" ? brickModeRaw : undefined;
+
+  return brickMode ? { gridSize, colorLimit, brickTypes, brickMode } : { gridSize, colorLimit, brickTypes };
+}
+
+/**
  * 타임아웃 시그널 생성
- * - 왜: AbortError만으로는 "사용자 취소" vs "타임아웃" 구분이 안 되므로, 타임아웃 여부를 별도 플래그로 추적한다.
+ * - AbortError만으로는 "사용자 취소" vs "타임아웃" 구분이 안 되므로, 타임아웃 여부를 별도 플래그로 추적한다.
  */
 function createTimeout(ms: number) {
   const controller = new AbortController();
@@ -57,67 +98,6 @@ function createTimeout(ms: number) {
     clear: () => window.clearTimeout(id),
     didTimeout: () => timedOut,
   };
-}
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
-function toErrorMessage(v: unknown, fallback: string) {
-  if (typeof v === "string" && v.trim()) return v;
-  if (isRecord(v) && typeof v.message === "string" && v.message.trim()) return v.message;
-  try {
-    if (v != null) return JSON.stringify(v);
-  } catch {
-    // ignore
-  }
-  return fallback;
-}
-
-function toNumberOrNull(v: unknown): number | null {
-  if (typeof v === "number") return Number.isFinite(v) ? v : null;
-  if (typeof v === "string") {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
-
-/**
- * AnalyzeOptions 정규화
- * - 왜: AnalyzeOptions는 gridSize/colorLimit/brickTypes가 필수인데,
- *       부분 객체를 반환하면 TS가 "옵셔널"로 추론해서 타입 에러가 난다.
- * - 해결: 입력이 들어오면 항상 "완전한 AnalyzeOptions"로 만들어 반환한다.
- */
-function normalizeAnalyzeOptions(options?: unknown): AnalyzeOptions | undefined {
-  if (!isRecord(options)) return undefined;
-
-  const gridSizeRaw = options.gridSize;
-  const gridSize: AnalyzeOptions["gridSize"] =
-    gridSizeRaw === "16x16" || gridSizeRaw === "32x32" || gridSizeRaw === "48x48"
-      ? gridSizeRaw
-      : "16x16";
-
-  const colorLimitNum = toNumberOrNull(options.colorLimit);
-  const colorLimit: AnalyzeOptions["colorLimit"] =
-    colorLimitNum === 0 || colorLimitNum === 8 || colorLimitNum === 16 || colorLimitNum === 24
-      ? (colorLimitNum as AnalyzeOptions["colorLimit"])
-      : 16;
-
-  const brickTypesRaw = Array.isArray(options.brickTypes) ? options.brickTypes : [];
-  const brickTypes = brickTypesRaw.filter(
-    (t): t is BrickType => typeof t === "string" && (BRICK_TYPES as readonly string[]).includes(t)
-  );
-
-  const normalizedBrickTypes: BrickType[] = brickTypes.length > 0 ? brickTypes : [...BRICK_TYPES];
-
-  const brickModeRaw = options.brickMode;
-  const brickMode: AnalyzeOptions["brickMode"] | undefined =
-    brickModeRaw === "auto" || brickModeRaw === "manual" ? brickModeRaw : undefined;
-
-  return brickMode
-    ? { gridSize, colorLimit, brickTypes: normalizedBrickTypes, brickMode }
-    : { gridSize, colorLimit, brickTypes: normalizedBrickTypes };
 }
 
 async function requestJson<T>(
@@ -138,6 +118,7 @@ async function requestJson<T>(
 
     signal.addEventListener("abort", onAbort, { once: true });
     timeout.signal.addEventListener("abort", onAbort, { once: true });
+    if (signal.aborted) controller.abort();
 
     mergedSignal = controller.signal;
     cleanup = () => {
@@ -221,8 +202,11 @@ export async function analyzeGuide(
 
   const normalized = normalizeAnalyzeOptions(options);
   if (normalized) {
-    form.append("options", JSON.stringify(normalized)),
-   form.append("grid_size", normalized.gridSize);
+    // options는 서버 확장(추가 옵션)용으로 함께 보낸다.
+    form.append("options", JSON.stringify(normalized));
+
+    // 서버가 Form 필드를 우선 파싱할 수 있도록 핵심 필드는 별도로도 전달한다.
+    form.append("grid_size", normalized.gridSize);
     form.append("color_limit", String(normalized.colorLimit)); // 0이면 제한 없음
     form.append("allowed_bricks", JSON.stringify(normalized.brickTypes));
 
@@ -230,6 +214,7 @@ export async function analyzeGuide(
       form.append("brick_mode", normalized.brickMode);
     }
   }
+
   return requestJson<GuideResponse>(
     `${API_BASE_URL}/api/guide/analyze`,
     { method: "POST", body: form },

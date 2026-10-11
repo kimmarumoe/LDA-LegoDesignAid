@@ -1,6 +1,6 @@
 /* Global theme tokens (SSOT) */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   --lda-bg: #faf7f2;
   --lda-surface: #ffffff;
@@ -55,8 +55,8 @@
   --lda-home-shadow-accent: 0 8px 24px rgba(255, 159, 102, 0.18);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+:root[data-theme="dark"] {
+    color-scheme: dark;
     --lda-bg: #0e1116;
     --lda-surface: rgba(20, 26, 34, 0.92);
     --lda-surface-2: rgba(255, 255, 255, 0.06);
@@ -108,5 +108,4 @@
     --lda-home-shadow-elevated: 0 10px 40px rgba(0, 0, 0, 0.55);
     --lda-home-shadow-brand-soft: 0 12px 30px rgba(0, 0, 0, 0.45);
     --lda-home-shadow-accent: 0 8px 24px rgba(0, 0, 0, 0.55);
-  }
 }

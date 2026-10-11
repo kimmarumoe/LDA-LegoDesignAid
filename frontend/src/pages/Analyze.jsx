@@ -1,8 +1,9 @@
 // frontend/src/pages/Analyze.jsx
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import UploadPanel from "../components/analyze/upload/UploadPanel.jsx";
 import BrickGuidePanel from "../components/analyze/guide/BrickGuidePanel.jsx";
-import { SAMPLE_GUIDE } from "../sample/sampleGuide.js";
+import { SAMPLE_GUIDE, SAMPLE_GUIDE_PRESETS } from "../sample/sampleGuide.js";
 import { analyzeGuide, buildGuideSteps } from "../api/guideClient";
 import {
   AUTO_BRICK_PRESET,
@@ -50,6 +51,8 @@ function attachRequestOptionsToResult(analysisOnly, requestOptions) {
 }
 
 export default function Analyze() {
+  const location = useLocation();
+  const sampleGuide = SAMPLE_GUIDE_PRESETS[location.state?.sampleId] ?? SAMPLE_GUIDE;
   // STEP1 취소
   const analyzeAbortRef = useRef(null);
   const requestSeqRef = useRef(0);
@@ -64,7 +67,10 @@ export default function Analyze() {
   const [useSample, setUseSample] = useState(true);
 
   // 옵션 상태
-  const [analysisOptions, setAnalysisOptions] = useState(DEFAULT_OPTIONS);
+  const [analysisOptions, setAnalysisOptions] = useState(() => ({
+    ...DEFAULT_OPTIONS,
+    gridSize: `${sampleGuide.meta.width}x${sampleGuide.meta.height}`,
+  }));
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
 
   // 브릭 옵션
@@ -148,8 +154,7 @@ export default function Analyze() {
   }
 
   function extractAnalysisOnly(guidePayload) {
-    const { steps, ...analysisOnly } = guidePayload ?? {};
-    return analysisOnly;
+    return { ...guidePayload, steps: [] };
   }
 
   function normalizeSteps(steps) {
@@ -247,7 +252,7 @@ export default function Analyze() {
 
     try {
       const payload = useSample
-        ? SAMPLE_GUIDE
+        ? sampleGuide
         : await analyzeGuide(selectedFile, requestOptions, controller.signal);
 
       if (seq !== requestSeqRef.current) return;
@@ -304,6 +309,10 @@ export default function Analyze() {
 
     if (guideStatus === "done" && guideSteps.length > 0) return;
 
+    abortGuide();
+    const seq = guideRequestSeqRef.current;
+    const controller = new AbortController();
+    guideAbortRef.current = controller;
     setGuideStatus("running");
 
     try {
@@ -311,11 +320,13 @@ export default function Analyze() {
       if (useSample) {
         if (!availableSteps || availableSteps.length === 0) {
           await waitMinLoadingIfNeeded();
+          if (seq !== guideRequestSeqRef.current) return;
           setGuideStatus("error");
           setGuideError("샘플 데이터에 steps가 없습니다. SAMPLE_GUIDE를 확인해주세요.");
           return;
         }
         await waitMinLoadingIfNeeded();
+        if (seq !== guideRequestSeqRef.current) return;
         setGuideSteps(availableSteps);
         setGuideStatus("done");
         return;
@@ -329,16 +340,11 @@ export default function Analyze() {
 
       if (!analysisId) {
         await waitMinLoadingIfNeeded();
+        if (seq !== guideRequestSeqRef.current) return;
         setGuideStatus("error");
         setGuideError("analysisId를 찾을 수 없습니다. STEP 01을 다시 실행해주세요.");
         return;
       }
-
-      abortGuide();
-      const seq = guideRequestSeqRef.current;
-
-      const controller = new AbortController();
-      guideAbortRef.current = controller;
 
       const res = await buildGuideSteps(
         {
@@ -358,24 +364,32 @@ export default function Analyze() {
 
       if (steps.length === 0) {
         setGuideStatus("error");
+        setGuideError("조립 단계가 없습니다. STEP 01을 다시 실행해주세요.");
         return;
       }
 
       setGuideSteps(steps);
       setGuideStatus("done");
     } catch (err) {
+      if (seq !== guideRequestSeqRef.current) return;
+      const message = normalizeClientError(err);
+      if (!message) {
+        setGuideStatus("idle");
+        return;
+      }
       console.error(err);
       await waitMinLoadingIfNeeded();
+      if (seq !== guideRequestSeqRef.current) return;
       setGuideStatus("error");
-      setGuideError(normalizeClientError(err));
+      setGuideError(message);
     } finally {
-      guideAbortRef.current = null;
+      if (seq === guideRequestSeqRef.current) guideAbortRef.current = null;
     }
   };
 
   const handleReset = () => {
     abortAll();
-    setSelectedFile(false);
+    setSelectedFile(null);
     setPreviewUrl(null);
     setIsOptionsOpen(false);
     resetAllResults();

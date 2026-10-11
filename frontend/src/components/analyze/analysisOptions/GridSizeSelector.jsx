@@ -1,3 +1,4 @@
+import OptionDropdown from "../../ui/option-dropdown.jsx";
 import { useEffect, useMemo, useState } from "react";
 import {
   GRID_PRESETS,
@@ -62,8 +63,7 @@ export default function GridSizeSelector({ disabled, value, onChange }) {
     onChange?.(formatGridSize(wi, hi));
   }
 
-  const handleSelect = (e) => {
-    const next = e.target.value;
+  const handleSelect = (next) => {
 
     if ((GRID_PRESETS).includes(next)) {
       // preset 선택 → uiMode preset + 즉시 값 반영
@@ -116,17 +116,19 @@ export default function GridSizeSelector({ disabled, value, onChange }) {
   return (
   <div className="grid-size">
     <div className="grid-size__row">
-      <select
-        className="form-select grid-size__select"
+      <OptionDropdown
+        label="그리드 크기"
+        className="grid-size__select"
         value={selectValue}
-        onChange={handleSelect}
+        onValueChange={handleSelect}
         disabled={disabled}
-      >
-        <option value="16x16">16 x 16</option>
-        <option value="32x32">32 x 32</option>
-        <option value="48x48">48 x 48</option>
-        <option value="custom">커스텀</option>
-      </select>
+        options={[
+          { value: "16x16", label: "16 × 16" },
+          { value: "32x32", label: "32 × 32" },
+          { value: "48x48", label: "48 × 48" },
+          { value: "custom", label: "커스텀" },
+        ]}
+      />
 
       <label className="grid-size__lock">
         <input
