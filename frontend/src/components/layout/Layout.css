@@ -175,12 +175,18 @@
   }
 
   .app-header-inner {
-    flex-direction: column;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px;
   }
 
+  .theme-trigger {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
   .app-nav {
+    grid-column: 1 / -1;
     width: 100%;
     justify-content: flex-start;
 
