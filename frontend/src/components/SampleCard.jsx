@@ -1,4 +1,5 @@
 // frontend/src/components/SampleCard.jsx
+import { SAMPLE_GUIDE_PRESETS } from "../sample/sampleGuide.js";
 
 function SampleCard({ mosaic, onOpenAnalyze }) {
   const {
@@ -12,7 +13,8 @@ function SampleCard({ mosaic, onOpenAnalyze }) {
     thumbnail,
   } = mosaic;
 
-const handleClick = () => onOpenAnalyze?.(mosaic);
+  const handleClick = () => onOpenAnalyze?.(mosaic);
+  const guide = SAMPLE_GUIDE_PRESETS[mosaic.id];
 
   return (
     <article className="sample-card">
@@ -24,6 +26,21 @@ const handleClick = () => onOpenAnalyze?.(mosaic);
             alt={`${title} 썸네일`}
             className="sample-thumb-img"
           />
+        ) : guide ? (
+          <svg
+            className="sample-thumb-mosaic"
+            viewBox={`0 0 ${guide.meta.width} ${guide.meta.height}`}
+            role="img"
+            aria-label={`${title} 브릭 모자이크 미리보기`}
+          >
+            <rect width={guide.meta.width} height={guide.meta.height} fill="var(--lda-grid-empty)" />
+            {guide.bricks.map((brick) => (
+              <g key={brick.id}>
+                <rect x={brick.x + 0.025} y={brick.y + 0.025} width="0.95" height="0.95" rx="0.08" fill={brick.hex} />
+                <circle cx={brick.x + 0.5} cy={brick.y + 0.5} r="0.23" fill="none" stroke="white" strokeOpacity="0.2" strokeWidth="0.05" />
+              </g>
+            ))}
+          </svg>
         ) : (
           <div className="sample-thumb-placeholder">
             <span className="sample-thumb-placeholder-label">
@@ -70,13 +87,13 @@ const handleClick = () => onOpenAnalyze?.(mosaic);
       <div className="sample-card-footer">
         <button
           type="button"
-          className="btn btn-primary sample-card-btn"
+          className="sample-card-btn"
           onClick={handleClick}
         >
           분석 페이지에서 보기
         </button>
         <p className="sample-card-hint">
-          지금은 샘플 데이터로 Analyze 페이지를 여는 용도로 사용할 예정입니다.
+          샘플을 분석하고 단계별 조립 가이드를 확인하세요.
         </p>
       </div>
     </article>

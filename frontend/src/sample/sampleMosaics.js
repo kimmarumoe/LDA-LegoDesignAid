@@ -2,8 +2,7 @@ import { SAMPLE_GUIDE_PRESETS } from "./sampleGuide.js";
 
 // frontend/src/sample/sampleMosaics.js
 
-// TODO: 썸네일 이미지는 나중에 public/samples/... 경로에 추가 예정
-// 지금은 thumbnail이 null이어도 UI는 placeholder를 보여줍니다.
+// 별도 이미지가 없으면 샘플 가이드의 브릭 데이터로 썸네일을 렌더링합니다.
 
 export const SAMPLE_MOSAICS = [
   {
