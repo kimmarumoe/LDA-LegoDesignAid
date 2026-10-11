@@ -116,7 +116,7 @@ function getInnerWidth(el) {
   return el.clientWidth - pl - pr;
 }
 
-export default function BrickMosaicPreview({ guide }) {
+export default function BrickMosaicPreview({ guide, highlightedBricks, title = "모자이크 프리뷰" }) {
   const viewportRef = useRef(null);
 
   const MIN_CELL = 4;
@@ -162,13 +162,8 @@ export default function BrickMosaicPreview({ guide }) {
     };
   }, [w]);
 
-  /*
-    maxCell이 바뀌면(모바일/데스크탑 전환, 회전, 창 크기 변경 등)
-    현재 cell 값이 최대를 넘지 않도록 자동으로 보정한다
-  */
-  useEffect(() => {
-    setCell((prev) => clamp(prev, MIN_CELL, maxCell));
-  }, [maxCell]);
+  const displayCell = clamp(cell, MIN_CELL, maxCell);
+  const highlightedCells = useMemo(() => new Set((highlightedBricks ?? []).map((brick) => `${brick?.x},${brick?.y}`)), [highlightedBricks]);
 
   const cells = useMemo(() => {
     const arr = new Array(w * h).fill("var(--lda-grid-empty)");
@@ -187,7 +182,7 @@ export default function BrickMosaicPreview({ guide }) {
   return (
     <section className="result-section">
       <div className="mosaic-head">
-        <h3 className="result-section-title">모자이크 프리뷰</h3>
+        <h3 className="result-section-title">{title}</h3>
 
         <div className="mosaic-controls">
           <span className="mosaic-meta">
@@ -200,12 +195,12 @@ export default function BrickMosaicPreview({ guide }) {
               type="range"
               min={MIN_CELL}
               max={maxCell}
-              value={cell}
+              value={displayCell}
               onChange={(e) =>
                 setCell(clamp(Number(e.target.value), MIN_CELL, maxCell))
               }
             />
-            <span className="mosaic-zoom-value">{cell}px</span>
+            <span className="mosaic-zoom-value">{displayCell}px</span>
           </label>
         </div>
       </div>
@@ -217,13 +212,13 @@ export default function BrickMosaicPreview({ guide }) {
           <div
             className="mosaic-grid"
             style={{
-              "--cell": `${cell}px`,
+              "--cell": `${displayCell}px`,
               gridTemplateColumns: `repeat(${w}, var(--cell))`,
               gridTemplateRows: `repeat(${h}, var(--cell))`,
             }}
           >
             {cells.map((c, i) => (
-              <div key={i} className="mosaic-cell" style={{ background: c }} />
+              <div key={i} className={`mosaic-cell${highlightedBricks ? highlightedCells.has(`${i % w},${Math.floor(i / w)}`) ? " mosaic-cell--current" : c !== "var(--lda-grid-empty)" ? " mosaic-cell--previous" : "" : ""}`} style={{ background: c }} />
             ))}
           </div>
         </div>

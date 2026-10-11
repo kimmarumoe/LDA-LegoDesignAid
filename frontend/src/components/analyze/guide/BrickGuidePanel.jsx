@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import BrickMosaicPreview from "../mosaic/BrickMosaicPreview.jsx";
+import AssemblyGuidePreview from "./AssemblyGuidePreview.jsx";
 
 /*
   BrickGuidePanel
@@ -364,49 +365,7 @@ export default function BrickGuidePanel({
         )}
 
         {isGuideDone && (
-          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-            {guideSteps.map((step, idx) => {
-              const title = step?.title ?? `STEP ${idx + 1}`;
-              const desc = step?.description ?? step?.desc ?? "";
-              const bricks = step?.bricks ?? step?.bricksUsed ?? [];
-
-              return (
-                <div key={idx} className="card" style={{ padding: 12, borderRadius: 12 }}>
-                  <strong>{title}</strong>
-                  {desc && <p style={{ marginTop: 8, opacity: 0.9 }}>{desc}</p>}
-
-                  {Array.isArray(bricks) && bricks.length > 0 && (
-                    <details style={{ marginTop: 10 }}>
-                      <summary>사용 브릭 보기 ({bricks.length})</summary>
-                      <ul style={{ marginTop: 8 }}>
-                        {bricks.map((b, bIdx) => (
-                          <li key={bIdx} style={{ fontSize: 12, opacity: 0.85 }}>
-                            {typeof b === "string"
-                              ? b
-                              : (() => {
-                                  const hx = hexKey(b?.hex ?? b?.color);
-                                  // 서버가 color에 이미 이름을 넣어줄 수도 있으니(= "#..."가 아니면) 우선 사용
-                                  const serverColor = String(b?.color ?? "").trim();
-                                  const name =
-                                    (serverColor && !serverColor.startsWith("#") ? serverColor : "") ||
-                                    colorNameMap[hx] ||
-                                    hx;
-
-                                  const x = b?.x ?? 0;
-                                  const y = b?.y ?? 0;
-                                  const type = b?.type ?? "1x1";
-
-                                  return `(${x},${y}) ${type} · ${name} (${hx})`;
-                                })()}
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <AssemblyGuidePreview steps={guideSteps} analysisResult={analysisResult} />
         )}
       </div>
     </section>

@@ -1,0 +1,17 @@
+.assembly-guide { margin-top: 16px; display: grid; gap: 12px; }
+.assembly-navigation { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.assembly-navigation label { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.assembly-navigation button, .assembly-navigation select { padding: 8px 12px; border: 1px solid var(--lda-border); border-radius: 10px; color: var(--lda-text); background: var(--lda-surface); }
+.assembly-navigation select { max-width: 100%; }
+.assembly-navigation button { cursor: pointer; }
+.assembly-navigation button:disabled { opacity: .4; cursor: default; }
+.assembly-navigation :focus-visible { outline: 2px solid var(--lda-brand); outline-offset: 3px; }
+.assembly-guide progress { width: 100%; accent-color: var(--lda-brand); }
+.assembly-guide h4 { margin-top: 10px; font-weight: 700; }
+.assembly-legend { color: var(--lda-muted); font-size: 13px; }
+.assembly-guide details { padding: 12px; background: var(--lda-surface2); border-radius: 12px; }
+.assembly-guide summary { cursor: pointer; }
+.assembly-guide ul { padding-left: 20px; max-height: 240px; overflow: auto; font-size: 13px; }
+.mosaic-cell--previous { opacity: .35; }
+.mosaic-cell--current { box-shadow: inset 0 0 0 1px var(--lda-text); }
+@media (max-width: 480px) { .assembly-navigation label { width: 100%; order: -1; } .assembly-navigation select { flex: 1; min-width: 0; } }
