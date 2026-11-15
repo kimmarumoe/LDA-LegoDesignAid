@@ -1,6 +1,8 @@
 // frontend/src/pages/Analyze.jsx
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../auth/useAuth.js";
+import { clearPendingAnalysis, readPendingAnalysis } from "../utils/pendingAnalysis.js";
 import SaveWorkForm from "../components/works/SaveWorkForm.jsx";
 import UploadPanel from "../components/analyze/upload/UploadPanel.jsx";
 import BrickGuidePanel from "../components/analyze/guide/BrickGuidePanel.jsx";
@@ -53,7 +55,42 @@ function attachRequestOptionsToResult(analysisOnly, requestOptions) {
 
 export default function Analyze() {
   const location = useLocation();
-  const sampleGuide = SAMPLE_GUIDE_PRESETS[location.state?.sampleId] ?? SAMPLE_GUIDE;
+  const { member, loading } = useAuth();
+  if (new URLSearchParams(location.search).get("resume") !== "1") return <AnalyzeContent />;
+  if (loading) return <p role="status">로그인 상태를 확인하고 있습니다.</p>;
+  if (!member) return <section className="account-page"><p>임시 결과를 복원하려면 로그인해 주세요.</p><Link to="/login?resume=1">로그인하기</Link></section>;
+  return <ResumeAnalysis key={member.id} memberId={member.id} />;
+}
+
+function ResumeAnalysis({ memberId }) {
+  const [result] = useState(() => readPendingAnalysis(memberId));
+  const [cleanupError, setCleanupError] = useState("");
+  useEffect(() => {
+    if (result.status === "expired" || result.status === "invalid") clearPendingAnalysis();
+  }, [result.status]);
+  if (result.status === "ready") return <AnalyzeContent draft={result.draft} />;
+  const messages = {
+    missing: "복원할 임시 결과가 없습니다. 이미 저장했거나 초기화한 결과일 수 있습니다.",
+    expired: "임시 보관 시간이 30분을 지나 결과를 복원할 수 없습니다.",
+    invalid: "임시 결과의 형식이 올바르지 않습니다. 다시 분석해 주세요.",
+    unavailable: "브라우저 임시 저장 공간에 접근할 수 없거나 데이터를 읽지 못했습니다.",
+    "different-member": "다른 계정의 임시 결과는 복원하지 않았습니다. 원래 계정으로 다시 로그인하거나 임시 결과를 삭제해 주세요.",
+  };
+  return <section className="account-page"><div className="account-card"><h1>분석 결과 복원</h1><p role="status">{messages[result.status] ?? "로그인이 필요합니다."}</p>
+    <Link to="/analyze">새 분석 시작하기</Link>
+    {result.status === "different-member" && <button className="account-secondary" onClick={() => {
+      setCleanupError(clearPendingAnalysis() ? "임시 결과를 삭제했습니다." : "임시 결과를 삭제하지 못했습니다. 이 탭을 닫아 주세요.");
+    }}>임시 결과 삭제</button>}
+    {cleanupError && <p role="status">{cleanupError}</p>}
+  </div></section>;
+}
+
+function AnalyzeContent({ draft = null }) {
+  const location = useLocation();
+  const sampleId = draft?.sampleId ?? location.state?.sampleId ?? "smile-16";
+  const sampleGuide = SAMPLE_GUIDE_PRESETS[sampleId] ?? SAMPLE_GUIDE;
+  const [restoration, setRestoration] = useState(draft);
+  const [draftNotice, setDraftNotice] = useState("");
   // STEP1 취소
   const analyzeAbortRef = useRef(null);
   const requestSeqRef = useRef(0);
@@ -65,28 +102,29 @@ export default function Analyze() {
   // 입력 상태
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [useSample, setUseSample] = useState(true);
+  const [useSample, setUseSample] = useState(draft?.useSample ?? true);
 
   // 옵션 상태
   const [analysisOptions, setAnalysisOptions] = useState(() => ({
     ...DEFAULT_OPTIONS,
-    gridSize: `${sampleGuide.meta.width}x${sampleGuide.meta.height}`,
+    gridSize: toSafeGridSize(draft?.options?.gridSize ?? `${sampleGuide.meta.width}x${sampleGuide.meta.height}`),
+    colorLimit: toSafeColorLimit(draft?.options?.colorLimit ?? DEFAULT_OPTIONS.colorLimit),
   }));
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
 
   // 브릭 옵션
-  const [brickMode, setBrickMode] = useState("manual"); // "auto" | "manual"
-  const [brickAllowed, setBrickAllowed] = useState(["1x1"]);
+  const [brickMode, setBrickMode] = useState(toSafeBrickMode(draft?.options?.brickMode)); // "auto" | "manual"
+  const [brickAllowed, setBrickAllowed] = useState(() => normalizeBrickTypes(draft?.options?.brickTypes));
 
   // STEP 01 결과
-  const [analysisResult, setAnalysisResult] = useState(null);
-  const [analysisStatus, setAnalysisStatus] = useState("idle"); // idle | running | done | error
+  const [analysisResult, setAnalysisResult] = useState(draft?.analysis ?? null);
+  const [analysisStatus, setAnalysisStatus] = useState(draft ? "done" : "idle"); // idle | running | done | error
   const [analysisError, setAnalysisError] = useState("");
 
   // STEP 02 결과
-  const [availableSteps, setAvailableSteps] = useState([]);
-  const [guideSteps, setGuideSteps] = useState([]);
-  const [guideStatus, setGuideStatus] = useState("idle"); // idle | running | done | error
+  const [availableSteps, setAvailableSteps] = useState(draft?.steps ?? []);
+  const [guideSteps, setGuideSteps] = useState(draft?.steps ?? []);
+  const [guideStatus, setGuideStatus] = useState(draft ? "done" : "idle"); // idle | running | done | error
   const [guideError, setGuideError] = useState("");
 
   function isNormalizedApiError(err) {
@@ -122,7 +160,15 @@ export default function Analyze() {
     return "분석 중 오류가 발생했습니다. 서버 실행 상태를 확인해주세요.";
   }
 
+  function clearRestoration() {
+    if (restoration && !clearPendingAnalysis(restoration.id)) {
+      setDraftNotice("화면은 초기화했지만 임시 데이터를 삭제하지 못했습니다. 이 탭을 닫아 주세요.");
+    } else { setDraftNotice(""); }
+    setRestoration(null);
+  }
+
   function resetAllResults() {
+    clearRestoration();
     setAnalysisResult(null);
     setAnalysisStatus("idle");
     setAnalysisError("");
@@ -217,6 +263,7 @@ export default function Analyze() {
   };
 
   const handleAnalyze = async () => {
+    clearRestoration();
     const startedAt = Date.now();
 
     setAnalysisError("");
@@ -399,6 +446,8 @@ export default function Analyze() {
   return (
     <main className="analyze-page">
       <div className="analyze-container">
+        {restoration && <p className="account-notice" role="status">분석 결과와 작품 이름을 복원했습니다. 저장 버튼을 눌러 내 작품으로 저장해 주세요. 원본 파일은 복원하지 않았으므로 새 분석에는 파일을 다시 선택해야 할 수 있습니다.</p>}
+        {draftNotice && <p role="alert">{draftNotice}</p>}
         <UploadPanel
           previewUrl={previewUrl}
           hasFile={!!selectedFile}
@@ -434,7 +483,7 @@ export default function Analyze() {
           onRetryAnalyze={handleAnalyze}
         />
         {analysisStatus === "done" && guideStatus === "done" && guideSteps.length > 0 && (
-          <SaveWorkForm key={useSample ? sampleGuide.meta.createdAt + sampleGuide.meta.gridSize : analysisResult.analysisId} analysis={analysisResult} steps={guideSteps} options={analysisResult.meta?.requestOptions ?? {}} />
+          <SaveWorkForm key={useSample ? sampleGuide.meta.createdAt + sampleGuide.meta.gridSize : analysisResult.analysisId} analysis={analysisResult} steps={guideSteps} options={analysisResult.meta?.requestOptions ?? restoration?.options ?? {}} useSample={useSample} sampleId={sampleId} initialTitle={restoration?.title ?? ""} pendingId={restoration?.id} onSaved={() => setRestoration(null)} />
         )}
         </div>
       </div>

@@ -9,6 +9,9 @@ export default function AuthPage({ register = false }) {
   const { member, loading, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const resume = new URLSearchParams(location.search).get("resume") === "1";
+  const resumeQuery = resume ? "?resume=1" : "";
+  const destination = resume ? "/analyze?resume=1" : "/mypage";
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -36,10 +39,10 @@ export default function AuthPage({ register = false }) {
     try {
       if (register) {
         await registerMember({ username, password, nickname });
-        navigate("/login", { replace: true, state: { registered: true } });
+        navigate(`/login${resumeQuery}`, { replace: true, state: { registered: true } });
       } else {
         await login({ username, password });
-        navigate("/mypage", { replace: true });
+        navigate(destination, { replace: true });
       }
     } catch (failure) {
       setLoginRejected(!register && failure.status === 401);
@@ -50,7 +53,7 @@ export default function AuthPage({ register = false }) {
   }
 
   if (loading) return <div className="account-page" role="status">로그인 상태를 확인하고 있습니다.</div>;
-  if (member) return <Navigate to="/mypage" replace />;
+  if (member) return <Navigate to={destination} replace />;
 
   return (
     <section className="account-page">
@@ -87,7 +90,7 @@ export default function AuthPage({ register = false }) {
             <button className="account-primary" type="submit">{busy ? "처리 중…" : register ? "회원가입" : "로그인"}</button>
           </fieldset>
         </form>
-        <p className="account-switch">{register ? "이미 계정이 있나요? " : "처음 방문하셨나요? "}<Link to={register ? "/login" : "/signup"}>{register ? "로그인" : "회원가입"}</Link></p>
+        <p className="account-switch">{register ? "이미 계정이 있나요? " : "처음 방문하셨나요? "}<Link to={`${register ? "/login" : "/signup"}${resumeQuery}`}>{register ? "로그인" : "회원가입"}</Link></p>
         <p className="account-muted account-footnote">현재는 테스트용 아이디 로그인입니다. 카카오·Google 로그인은 배포 전 추가할 예정입니다.</p>
       </div>
     </section>

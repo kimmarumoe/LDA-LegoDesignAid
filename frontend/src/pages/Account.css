@@ -49,3 +49,10 @@
 .work-list { list-style: none; padding: 0; display: grid; gap: 16px; margin-bottom: 20px; }
 .work-list li { display: grid; gap: 6px; border-bottom: 1px solid var(--lda-border); padding-bottom: 12px; overflow-wrap: anywhere; }
 .work-list time { color: var(--lda-muted); font-size: 12px; }
+
+.work-management { min-width: 0; }
+.work-action-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.work-action-row .account-primary { margin-top: 0; }
+.work-rename-form { max-width: 480px; }
+.work-delete-confirm { padding: 16px; margin-top: 16px; border: 1px solid var(--lda-border); border-radius: 12px; background: var(--lda-surface-2); overflow-wrap: anywhere; line-height: 1.7; }
+.work-delete-confirm .work-action-row { margin-top: 12px; }
