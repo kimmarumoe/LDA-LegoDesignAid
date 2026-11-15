@@ -11,3 +11,10 @@ export const getPost = (id) => request(`/${encodeURIComponent(id)}`);
 export const createPost = (body) => mutation("", "POST", body);
 export const editPost = (id, body) => mutation(`/${encodeURIComponent(id)}`, "PATCH", body);
 export const deletePost = (id) => mutation(`/${encodeURIComponent(id)}`, "DELETE");
+
+const postPath = id => `/${encodeURIComponent(id)}`;
+export const listComments = (id, page = 0) => request(`${postPath(id)}/comments?offset=${page * 20}&limit=20`);
+export const createComment = (id, content) => mutation(`${postPath(id)}/comments`, "POST", { content });
+export const editComment = (id, commentId, content) => mutation(`${postPath(id)}/comments/${encodeURIComponent(commentId)}`, "PATCH", { content });
+export const deleteComment = (id, commentId) => mutation(`${postPath(id)}/comments/${encodeURIComponent(commentId)}`, "DELETE");
+export const setPostLike = (id, liked) => mutation(`${postPath(id)}/like`, liked ? "PUT" : "DELETE");

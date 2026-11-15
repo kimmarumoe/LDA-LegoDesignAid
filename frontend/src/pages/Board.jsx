@@ -24,6 +24,7 @@ function BoardPage({ page, onPage }) {
     {result.data.items.length ? <div className="board-grid">{result.data.items.map(post => <Link className="account-card post-card" to={`/board/${post.id}`} key={post.id}>
       <PostThumbnail thumbnail={post.thumbnail} /><h2>{post.title}</h2><p className="post-excerpt">{post.description}</p>
       <p className="account-muted">{post.nickname} · <time dateTime={post.createdAt}>{new Date(post.createdAt).toLocaleDateString("ko-KR")}</time></p>
+      <p className="post-stats">좋아요 {post.likeCount} · 댓글 {post.commentCount}</p>
     </Link>)}</div> : <p className="account-muted">아직 공유된 작품이 없습니다. 첫 작품을 공유해 보세요.</p>}
     <nav className="board-actions" aria-label="게시판 페이지"><button className="account-secondary" disabled={page === 0} onClick={() => onPage(page - 1)}>이전 페이지</button><span>{page + 1}페이지</span><button className="account-secondary" disabled={!result.data.hasMore} onClick={() => onPage(page + 1)}>다음 페이지</button></nav>
   </>;
