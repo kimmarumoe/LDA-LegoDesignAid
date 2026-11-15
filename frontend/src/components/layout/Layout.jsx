@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: "/", label: "홈", end: true },
   { to: "/analyze", label: "분석" },
   { to: "/sample", label: "샘플" },
+  { to: "/board", label: "게시판" },
 ];
 
 /**

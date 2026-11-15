@@ -45,3 +45,7 @@
 .profile-password-section summary { cursor: pointer; font-weight: 700; margin-bottom: 12px; }
 .profile-password-section summary:focus-visible { outline: 2px solid var(--lda-brand); outline-offset: 4px; }
 @media (max-width: 640px) { .account-grid { grid-template-columns: 1fr; } .account-card { padding: 20px; } .account-page { padding: 20px 0; } }
+
+.work-list { list-style: none; padding: 0; display: grid; gap: 16px; margin-bottom: 20px; }
+.work-list li { display: grid; gap: 6px; border-bottom: 1px solid var(--lda-border); padding-bottom: 12px; overflow-wrap: anywhere; }
+.work-list time { color: var(--lda-muted); font-size: 12px; }

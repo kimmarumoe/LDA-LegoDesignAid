@@ -1,0 +1,16 @@
+.board-heading, .board-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.board-actions { justify-content: flex-start; margin-top: 20px; }
+.board-actions .account-primary { margin-top: 0; }
+.board-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.account-page .post-card { display: flex; flex-direction: column; gap: 14px; color: var(--lda-text); text-decoration: none; min-width: 0; }
+.post-card:hover { border-color: var(--lda-brand); }
+.post-card h2 { margin-bottom: 0; overflow-wrap: anywhere; }
+.post-thumbnail { width: 100%; height: 180px; background: var(--lda-surface-2); border-radius: 12px; padding: 12px; shape-rendering: crispEdges; }
+.post-excerpt { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; color: var(--lda-muted); }
+.post-description { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; margin: 24px 0; }
+.post-form textarea, .post-form select { width: 100%; min-width: 0; padding: 12px; border-radius: 10px; border: 1px solid var(--lda-control-border); background: var(--lda-control-bg); color: var(--lda-control-text); font: inherit; }
+.post-form textarea { resize: vertical; }
+.delete-confirm { border: 1px solid var(--lda-border); background: var(--lda-surface-2); border-radius: 12px; padding: 16px; margin-top: 20px; }
+.account-dashboard h1 { overflow-wrap: anywhere; }
+@media (max-width: 900px) { .board-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .board-grid { grid-template-columns: minmax(0, 1fr); } }

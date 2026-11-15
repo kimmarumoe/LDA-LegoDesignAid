@@ -5,6 +5,10 @@ import Analyze from "./pages/Analyze.jsx";
 import Layout from "./components/layout/Layout.jsx";
 import Sample from "./pages/Sample.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
+import WorkDetail from "./pages/WorkDetail.jsx";
+import Board from "./pages/Board.jsx";
+import PostCreate from "./pages/PostCreate.jsx";
+import PostDetail from "./pages/PostDetail.jsx";
 import MyPage from "./pages/MyPage.jsx";
 function AnalyzeRoute() {
   const location = useLocation();
@@ -21,9 +25,13 @@ export default function App() {
         <Route path="/analyze" element={<AnalyzeRoute />} />
         {/* 샘플 갤러리 */}
         <Route path="/sample" element={<Sample />} />
+        <Route path="/board" element={<Board />} />
+        <Route path="/board/new" element={<PostCreate />} />
+        <Route path="/board/:postId" element={<PostDetail />} />
         <Route path="/login" element={<AuthPage key="login" />} />
         <Route path="/signup" element={<AuthPage key="signup" register />} />
         <Route path="/mypage" element={<MyPage />} />
+        <Route path="/mypage/works/:workId" element={<WorkDetail />} />
         {/* 그 외 모든 주소는 홈으로 리다이렉트 */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

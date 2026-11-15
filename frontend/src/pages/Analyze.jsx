@@ -1,6 +1,7 @@
 // frontend/src/pages/Analyze.jsx
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import SaveWorkForm from "../components/works/SaveWorkForm.jsx";
 import UploadPanel from "../components/analyze/upload/UploadPanel.jsx";
 import BrickGuidePanel from "../components/analyze/guide/BrickGuidePanel.jsx";
 import { SAMPLE_GUIDE, SAMPLE_GUIDE_PRESETS } from "../sample/sampleGuide.js";
@@ -421,6 +422,7 @@ export default function Analyze() {
           onChangeBrickAllowed={handleChangeBrickAllowed}
         />
 
+        <div className="analysis-results">
         <BrickGuidePanel
           analysisStatus={analysisStatus}
           analysisError={analysisError}
@@ -431,6 +433,10 @@ export default function Analyze() {
           onGenerateGuide={handleGenerateGuide}
           onRetryAnalyze={handleAnalyze}
         />
+        {analysisStatus === "done" && guideStatus === "done" && guideSteps.length > 0 && (
+          <SaveWorkForm key={useSample ? sampleGuide.meta.createdAt + sampleGuide.meta.gridSize : analysisResult.analysisId} analysis={analysisResult} steps={guideSteps} options={analysisResult.meta?.requestOptions ?? {}} />
+        )}
+        </div>
       </div>
     </main>
   );

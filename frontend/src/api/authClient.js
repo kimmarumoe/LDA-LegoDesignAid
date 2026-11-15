@@ -1,7 +1,7 @@
 import { http } from "./http.ts";
 import { getApiBaseUrl } from "../config/env.ts";
 
-function authUrl(path) {
+export function authUrl(path) {
   const base = new URL(getApiBaseUrl());
   // localhost와 127.0.0.1을 섞으면 브라우저가 쿠키를 다른 사이트로 판단한다.
   const localHosts = ["localhost", "127.0.0.1"];

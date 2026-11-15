@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Pencil } from "lucide-react";
 import { useAuth } from "../auth/useAuth.js";
 import "./Account.css";
+import WorkList from "../components/works/WorkList.jsx";
 import ProfileEditor from "../components/account/ProfileEditor.jsx";
 
 export default function MyPage() {
@@ -48,8 +49,8 @@ export default function MyPage() {
         )}
       </div>
       <div className="account-grid">
-        <div className="account-card"><h2>내 작품</h2><span className="account-badge">준비 중</span><p className="account-muted">완성한 작품을 계정에 저장하는 기능은 아직 연결되지 않았습니다.</p><Link to="/sample">샘플 작품 둘러보기</Link></div>
-        <div className="account-card"><h2>분석 기록</h2><span className="account-badge">준비 중</span><p className="account-muted">분석 결과를 계정별로 저장하는 기능은 다음 단계에서 추가할 예정입니다.</p><Link to="/analyze">새 이미지 분석하기</Link></div>
+        <WorkList key={member.id} />
+        <div className="account-card"><h2>분석 기록</h2><span className="account-badge">준비 중</span><p className="account-muted">작품 저장과 별도로 모든 분석 시도를 자동 기록하는 기능은 아직 제공하지 않습니다.</p><Link to="/analyze">새 이미지 분석하기</Link></div>
       </div>
     </section>
   );
