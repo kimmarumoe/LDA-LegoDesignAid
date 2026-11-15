@@ -3,9 +3,14 @@ import BrickMosaicPreview from "../mosaic/BrickMosaicPreview.jsx";
 import { getAssemblyFrame } from "./assemblySteps.js";
 import "./AssemblyGuidePreview.css";
 
-export default function AssemblyGuidePreview({ steps, analysisResult }) {
-  const [selected, setSelected] = useState(0);
-  const index = Math.min(selected, steps.length - 1);
+export default function AssemblyGuidePreview({ steps, analysisResult, initialStepIndex = 0, onStepChange, progressFeedback }) {
+  const [selected, setSelected] = useState(initialStepIndex);
+  const index = Math.max(0, Math.min(selected, steps.length - 1));
+  function selectStep(next) {
+    const safe = Math.max(0, Math.min(next, steps.length - 1));
+    setSelected(safe);
+    onStepChange?.(safe);
+  }
   const step = steps[index];
   const { current, placed } = useMemo(() => getAssemblyFrame(steps, index), [steps, index]);
   const guide = useMemo(() => ({
@@ -20,14 +25,16 @@ export default function AssemblyGuidePreview({ steps, analysisResult }) {
   return (
     <section className="assembly-guide" aria-label="단계별 조립 미리보기">
       <div className="assembly-navigation">
-        <button type="button" disabled={index === 0} onClick={() => setSelected(index - 1)}>이전 단계</button>
+        <button type="button" disabled={index === 0} onClick={() => selectStep(index - 1)}>이전 단계</button>
         <label>단계 선택
-          <select value={index} onChange={(event) => setSelected(Number(event.target.value))}>
+          <select value={index} onChange={(event) => selectStep(Number(event.target.value))}>
             {steps.map((item, i) => <option key={i} value={i}>{i + 1}. {item?.title ?? `STEP ${i + 1}`}</option>)}
           </select>
         </label>
-        <button type="button" disabled={index === steps.length - 1} onClick={() => setSelected(index + 1)}>다음 단계</button>
+        <button type="button" disabled={index === steps.length - 1} onClick={() => selectStep(index + 1)}>다음 단계</button>
+        {onStepChange && <button type="button" onClick={() => selectStep(0)}>처음부터 보기</button>}
       </div>
+      {progressFeedback}
       <div aria-live="polite" aria-atomic="true">
         <p>{index + 1} / {steps.length}단계 · 이번 단계 {current.length}개 · 누적 {placed.length}개</p>
         <progress aria-label="조립 단계 진행률" value={index + 1} max={steps.length} />

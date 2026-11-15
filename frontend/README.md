@@ -36,3 +36,11 @@ If you are developing a production application, we recommend using TypeScript wi
 node --test tests/pendingAnalysis.test.mjs
 npm run build
 ```
+
+## 개인 작품 조립 단계 이어보기
+
+마이페이지에서 저장한 작품을 열면 서버에 기록된 마지막 조립 단계부터 시작합니다. 이전·다음·단계 선택·처음부터 보기로 이동하면 자동 저장합니다. 저장 중·복원·완료·실패 상태를 표시하고, 실패 시 현재 화면을 유지하며 다시 저장할 수 있습니다. 실제 조립 완료 여부를 기록하는 기능은 아닙니다.
+
+`src/utils/progressSaver.js`가 요청 순서와 재시도를, `src/hooks/useWorkProgress.js`가 화면 구독을 담당합니다. 공통 조립 미리보기는 선택 변경을 알려주기만 하므로, 샘플·분석·공개 게시글의 기존 동작을 유지합니다. 저장 완료 전에 탭을 닫으면 마지막 위치가 반영되지 않을 수 있습니다.
+
+`node --test tests/*.test.mjs`로 임시 보관과 진행 위치 저장 테스트를 함께 실행합니다.

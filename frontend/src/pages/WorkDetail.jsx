@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { deleteWork, getWork, renameWork } from "../api/workClient.js";
+import { useWorkProgress } from "../hooks/useWorkProgress.js";
 import { useAuth } from "../auth/useAuth.js";
 import BrickGuidePanel from "../components/analyze/guide/BrickGuidePanel.jsx";
 import "./Account.css";
@@ -74,6 +75,23 @@ function WorkActions({ work, onRenamed }) {
   </div>;
 }
 
+function WorkGuide({ work }) {
+  const { state, selectStep, retry } = useWorkProgress(work.id, work.progress);
+  const { refresh } = useAuth();
+  const navigate = useNavigate();
+  const messages = {
+    idle: "단계를 이동하면 마지막으로 본 위치를 자동 저장합니다.",
+    restored: `이전에 본 ${state.stepIndex + 1}단계부터 이어봅니다.`,
+    saving: `${state.stepIndex + 1}단계 위치를 저장 중입니다. 저장 완료 후 이동해 주세요.`,
+    saved: `${state.stepIndex + 1}단계 위치를 저장했습니다.`,
+  };
+  const feedback = state.status === "error" ? <div className="assembly-save-feedback"><p role="alert">{state.error?.status === 401 ? "로그인이 만료되었습니다." : state.error?.status === 404 ? "작품을 찾을 수 없거나 접근할 수 없습니다." : "진행 위치를 저장하지 못했습니다."} 현재 화면은 유지됩니다. 다시 저장하지 않고 페이지를 이동하거나 새로고침하면 이전에 저장된 위치로 돌아갈 수 있습니다.</p>
+    <button type="button" className="account-secondary" onClick={retry}>진행 위치 다시 저장</button>
+    {state.error?.status === 401 && <button type="button" className="account-secondary" onClick={async () => { await refresh(); navigate("/login"); }}>다시 로그인</button>}
+  </div> : <p className="assembly-save-feedback" role="status">{messages[state.status]}</p>;
+  return <BrickGuidePanel analysisStatus="done" analysisResult={work.analysis} guideStatus="done" guideSteps={work.steps} initialStepIndex={work.progress?.stepIndex ?? 0} onStepChange={selectStep} progressFeedback={feedback} />;
+}
+
 function WorkContent({ workId }) {
   const [result, setResult] = useState(null);
   const [attempt, setAttempt] = useState(0);
@@ -89,7 +107,7 @@ function WorkContent({ workId }) {
   return <><h1>{work.title}</h1>
     <WorkActions work={work} onRenamed={updated => setResult(previous => ({ work: { ...previous.work, ...updated } }))} />
     <Link className="account-primary" to={`/board/new?workId=${encodeURIComponent(work.id)}`}>이 작품 공유하기</Link><p className="account-muted">저장 시각: <time dateTime={work.createdAt}>{new Date(work.createdAt).toLocaleString("ko-KR")}</time></p>
-    <BrickGuidePanel analysisStatus="done" analysisResult={work.analysis} guideStatus="done" guideSteps={work.steps} />
+    <WorkGuide key={work.id} work={work} />
   </>;
 }
 

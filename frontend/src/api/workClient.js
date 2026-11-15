@@ -18,3 +18,9 @@ export const deleteWork = (id) => http(authUrl(`/works/${encodeURIComponent(id)}
   method: "DELETE", credentials: "include",
   headers: { "X-LDA-Request": "auth" },
 });
+
+export const saveWorkProgress = (id, stepIndex) => http(authUrl(`/works/${encodeURIComponent(id)}/progress`), {
+  method: "PATCH", credentials: "include",
+  headers: { "Content-Type": "application/json", "X-LDA-Request": "auth" },
+  body: JSON.stringify({ stepIndex }),
+});

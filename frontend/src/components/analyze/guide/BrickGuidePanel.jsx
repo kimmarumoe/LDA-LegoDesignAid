@@ -16,6 +16,9 @@ export default function BrickGuidePanel({
   guideStatus,
   guideError,
   guideSteps,
+  initialStepIndex = 0,
+  onStepChange,
+  progressFeedback,
 
   onGenerateGuide,
 
@@ -365,7 +368,7 @@ export default function BrickGuidePanel({
         )}
 
         {isGuideDone && (
-          <AssemblyGuidePreview steps={guideSteps} analysisResult={analysisResult} />
+          <AssemblyGuidePreview steps={guideSteps} analysisResult={analysisResult} initialStepIndex={initialStepIndex} onStepChange={onStepChange} progressFeedback={progressFeedback} />
         )}
       </div>
     </section>
